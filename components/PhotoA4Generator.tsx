@@ -315,7 +315,7 @@ const PhotoA4Generator: React.FC = () => {
         @media print {
           body * { visibility: hidden; }
           .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; background: white; }
+          .print-area { position: absolute; left: 0; top: 0; width: 100%; background: white; display: block !important; }
           .print-page { width: ${orientation === 'portrait' ? pageSize.w : pageSize.h}mm; height: ${orientation === 'portrait' ? pageSize.h : pageSize.w}mm; display: flex; flex-wrap: wrap; gap: ${gapMm}mm; justify-content: flex-start; align-content: flex-start; padding: 8mm; box-sizing: border-box; page-break-after: always; margin: 0 auto; }
         }
         .checkerboard { background-image: linear-gradient(45deg, #f8fafc 25%, transparent 25%), linear-gradient(-45deg, #f8fafc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f8fafc 75%), linear-gradient(-45deg, transparent 75%, #f8fafc 75%); background-size: 20px 20px; }
