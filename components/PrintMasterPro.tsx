@@ -156,9 +156,7 @@ const PrintMasterPro: React.FC = () => {
     <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in no-select h-[85vh]">
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          .print-canvas-area, .print-canvas-area * { visibility: visible; }
-          .print-canvas-area { position: absolute; left: 0; top: 0; width: ${paperSize.w}mm; height: ${paperSize.h}mm; background: white; overflow: hidden; }
+          .print-canvas-area { position: absolute; left: 0; top: 0; width: ${paperSize.w}mm; height: ${paperSize.h}mm; background: white; overflow: hidden; display: block !important; z-index: 9999; }
           .print-img-wrap { position: absolute; left: ${position.x}%; top: ${position.y}%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); }
           .print-img { transform: scale(${scale/100}); width: ${fitMode === 'cover' ? (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? 'auto' : '100%') : (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? '100%' : 'auto')}; height: ${fitMode === 'cover' ? (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? '100%' : 'auto') : (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? 'auto' : '100%')}; }
           .print-crop-mark { position: absolute; width: 10mm; height: 10mm; border: 0.5pt solid black; z-index: 50; }
