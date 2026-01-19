@@ -1,5 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
+import { removeBackground } from "@imgly/background-removal";
 import { ContractData, ResumeData } from "../types";
 
 // Helper para inicializar o AI com a chave do ambiente de forma segura
@@ -150,28 +151,32 @@ export const generateRentalContract = async (data: ContractData): Promise<string
  */
 export const removeBackgroundAI = async (base64Image: string): Promise<string | null> => {
   try {
-    const ai = getAI();
-    const resizedImage = await resizeImage(base64Image);
-    // Limpeza da string base64 caso venha com o prefixo data:image...
-    const cleanBase64 = resizedImage.includes(',') ? resizedImage.split(',')[1] : resizedImage;
+    let blob: Blob;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } }, 
-          { text: 'Remove the background and return only the subject on pure transparent white background. Return only the image data.' }
-        ]
+    // Verifica se é Data URL ou Base64 puro e converte para Blob
+    if (base64Image.startsWith('data:')) {
+      const response = await fetch(base64Image);
+      blob = await response.blob();
+    } else {
+      // Fallback para base64 puro (decodificação manual)
+      const byteCharacters = atob(base64Image);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
-    });
-
-    // Procura por dados binários na resposta
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
+      const byteArray = new Uint8Array(byteNumbers);
+      blob = new Blob([byteArray], { type: 'image/png' });
     }
-    return null;
+
+    // Processamento local (Gratuito e Ilimitado)
+    const imageBlob = await removeBackground(blob);
+    
+    // Converte o resultado de volta para Data URL para uso no app
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(imageBlob);
+    });
   } catch (error) {
     console.error("Erro na remoção de fundo:", error);
     return null;

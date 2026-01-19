@@ -144,8 +144,6 @@ const PhotoA4Generator: React.FC = () => {
           } else {
             hasError = true;
           }
-          // Pequeno delay para evitar rate limit e erros de processamento
-          await new Promise(resolve => setTimeout(resolve, 800));
         }
       }
       
