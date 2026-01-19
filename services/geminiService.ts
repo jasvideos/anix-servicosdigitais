@@ -13,6 +13,36 @@ const getAI = () => {
   return new GoogleGenAI({ apiKey });
 };
 
+const resizeImage = async (base64Str: string, maxWidth = 1024): Promise<string> => {
+  if (typeof window === 'undefined') return base64Str;
+  
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = base64Str;
+    img.onload = () => {
+      if (img.width <= maxWidth && img.height <= maxWidth) {
+        resolve(base64Str);
+        return;
+      }
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+      } else {
+        if (height > maxWidth) { width *= maxWidth / height; height = maxWidth; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = () => resolve(base64Str);
+  });
+};
+
 /**
  * Transforma número em valor por extenso.
  */
@@ -121,8 +151,9 @@ export const generateRentalContract = async (data: ContractData): Promise<string
 export const removeBackgroundAI = async (base64Image: string): Promise<string | null> => {
   try {
     const ai = getAI();
+    const resizedImage = await resizeImage(base64Image);
     // Limpeza da string base64 caso venha com o prefixo data:image...
-    const cleanBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+    const cleanBase64 = resizedImage.includes(',') ? resizedImage.split(',')[1] : resizedImage;
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
