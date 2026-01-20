@@ -246,6 +246,47 @@ const LabelGenerator: React.FC = () => {
         </div>
 
         <div className="space-y-6">
+          <div className="space-y-4">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Editor de Arte</label>
+            <div className="flex flex-col h-[520px] bg-slate-900 rounded-2xl overflow-hidden border-2 border-indigo-500/20 shadow-2xl">
+              {isCropping && rawImage ? (
+                <>
+                  <div className="flex-1 bg-slate-800 flex items-center justify-center relative overflow-hidden">
+                    <div className={`bg-white overflow-hidden relative border-2 border-indigo-500 shadow-2xl cursor-move ${shape === 'circle' ? 'rounded-full' : ''}`} style={{ width: '250px', height: `${250 * (heightMm / widthMm)}px` }} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp}>
+                      <img src={rawImage} draggable={false} style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transformOrigin: '0 0', maxWidth: 'none', width: '100%' }} className="pointer-events-none" />
+                    </div>
+                  </div>
+                  <div className="p-4 bg-slate-900 border-t border-white/5 z-20 shrink-0">
+                    <div className="flex gap-2 mb-4">
+                      <input type="number" step="0.01" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1 bg-slate-800 text-white rounded px-2 py-2 text-[10px] font-bold border border-slate-700" placeholder="Zoom" />
+                      <input type="number" value={position.x} onChange={(e) => setPosition(p => ({ ...p, x: Number(e.target.value) }))} className="flex-1 bg-slate-800 text-white rounded px-2 py-2 text-[10px] font-bold border border-slate-700" placeholder="X" />
+                      <input type="number" value={position.y} onChange={(e) => setPosition(p => ({ ...p, y: Number(e.target.value) }))} className="flex-1 bg-slate-800 text-white rounded px-2 py-2 text-[10px] font-bold border border-slate-700" placeholder="Y" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => setIsCropping(false)} className="flex-1 bg-slate-800 text-white text-[9px] py-3 rounded-xl font-black uppercase tracking-widest">Cancelar</button>
+                      <button onClick={applyCrop} className="flex-[2] bg-indigo-600 text-white text-[9px] py-3 rounded-xl font-black uppercase tracking-widest active:scale-95">Aplicar Arte</button>
+                    </div>
+                  </div>
+                </>
+              ) : image ? (
+                <div className="relative w-full h-full p-8 flex items-center justify-center bg-slate-100/30">
+                  <img src={image} className={`max-w-full max-h-full object-contain shadow-2xl border-4 border-white ${shape === 'circle' ? 'rounded-full' : 'rounded-lg'}`} alt="Label Preview" />
+                  <button onClick={() => { setImage(null); setRawImage(null); }} className="absolute top-4 right-4 bg-red-600 text-white p-2 rounded-full hover:scale-110 shadow-lg transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg></button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-slate-800/50 transition-all bg-slate-900 group">
+                  <div className="bg-indigo-600 p-5 rounded-2xl shadow-xl mb-4 group-hover:scale-105 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2 2z" /></svg></div>
+                  <p className="text-white text-[10px] font-black uppercase tracking-widest">Carregar Arte</p>
+                  <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                </label>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleRemoveBackground} disabled={!image || isProcessing} className="flex-1 bg-white text-rose-600 border border-rose-100 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-50 disabled:opacity-30">IA Fundo</button>
+              <button onClick={() => setIsCropping(true)} disabled={!rawImage} className="flex-1 bg-white text-indigo-600 border border-indigo-100 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-50">Ajustar Arte</button>
+            </div>
+          </div>
+
           <div className="space-y-1">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Formato</label>
             <div className="flex gap-2">
@@ -318,47 +359,6 @@ const LabelGenerator: React.FC = () => {
                   <input type="number" step="0.1" value={borderWidth} onChange={(e) => setBorderWidth(Number(e.target.value))} disabled={!hasBorder} className="flex-1 border border-slate-200 bg-white rounded-lg px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-30" />
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Editor de Arte</label>
-            <div className="flex flex-col h-[520px] bg-slate-900 rounded-2xl overflow-hidden border-2 border-indigo-500/20 shadow-2xl">
-              {isCropping && rawImage ? (
-                <>
-                  <div className="flex-1 bg-slate-800 flex items-center justify-center relative overflow-hidden">
-                    <div className={`bg-white overflow-hidden relative border-2 border-indigo-500 shadow-2xl cursor-move ${shape === 'circle' ? 'rounded-full' : ''}`} style={{ width: '250px', height: `${250 * (heightMm / widthMm)}px` }} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp}>
-                      <img src={rawImage} draggable={false} style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transformOrigin: '0 0', maxWidth: 'none', width: '100%' }} className="pointer-events-none" />
-                    </div>
-                  </div>
-                  <div className="p-4 bg-slate-900 border-t border-white/5 z-20 shrink-0">
-                    <div className="flex gap-2 mb-4">
-                      <input type="number" step="0.01" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1 bg-slate-800 text-white rounded px-2 py-2 text-[10px] font-bold border border-slate-700" placeholder="Zoom" />
-                      <input type="number" value={position.x} onChange={(e) => setPosition(p => ({ ...p, x: Number(e.target.value) }))} className="flex-1 bg-slate-800 text-white rounded px-2 py-2 text-[10px] font-bold border border-slate-700" placeholder="X" />
-                      <input type="number" value={position.y} onChange={(e) => setPosition(p => ({ ...p, y: Number(e.target.value) }))} className="flex-1 bg-slate-800 text-white rounded px-2 py-2 text-[10px] font-bold border border-slate-700" placeholder="Y" />
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => setIsCropping(false)} className="flex-1 bg-slate-800 text-white text-[9px] py-3 rounded-xl font-black uppercase tracking-widest">Cancelar</button>
-                      <button onClick={applyCrop} className="flex-[2] bg-indigo-600 text-white text-[9px] py-3 rounded-xl font-black uppercase tracking-widest active:scale-95">Aplicar Arte</button>
-                    </div>
-                  </div>
-                </>
-              ) : image ? (
-                <div className="relative w-full h-full p-8 flex items-center justify-center bg-slate-100/30">
-                  <img src={image} className={`max-w-full max-h-full object-contain shadow-2xl border-4 border-white ${shape === 'circle' ? 'rounded-full' : 'rounded-lg'}`} alt="Label Preview" />
-                  <button onClick={() => { setImage(null); setRawImage(null); }} className="absolute top-4 right-4 bg-red-600 text-white p-2 rounded-full hover:scale-110 shadow-lg transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg></button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-slate-800/50 transition-all bg-slate-900 group">
-                  <div className="bg-indigo-600 p-5 rounded-2xl shadow-xl mb-4 group-hover:scale-105 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2 2z" /></svg></div>
-                  <p className="text-white text-[10px] font-black uppercase tracking-widest">Carregar Arte</p>
-                  <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
-                </label>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={handleRemoveBackground} disabled={!image || isProcessing} className="flex-1 bg-white text-rose-600 border border-rose-100 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-50 disabled:opacity-30">IA Fundo</button>
-              <button onClick={() => setIsCropping(true)} disabled={!rawImage} className="flex-1 bg-white text-indigo-600 border border-indigo-100 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-indigo-50">Ajustar Arte</button>
             </div>
           </div>
         </div>
