@@ -96,7 +96,7 @@ const PrintMasterPro: React.FC = () => {
 
     setIsProcessing(true);
     try {
-      const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY || (import.meta as any).env?.VITE_API_KEY || "";
+      const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY || (import.meta as any).env?.VITE_API_KEY || localStorage.getItem('anix_api_key') || "";
       const ai = new GoogleGenAI({ apiKey });
       const base64 = image.includes(',') ? image.split(',')[1] : image;
       

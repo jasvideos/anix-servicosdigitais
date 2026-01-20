@@ -6,7 +6,11 @@ import { ContractData, ResumeData } from "../types";
 // Helper para inicializar o AI com a chave do ambiente de forma segura
 const getAI = () => {
   // Tenta obter a chave de múltiplas fontes comuns em builds Vite/Vercel
-  const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY || (import.meta as any).env?.VITE_API_KEY || "";
+  let apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY || (import.meta as any).env?.VITE_API_KEY || "";
+  
+  if ((!apiKey || apiKey === "undefined") && typeof window !== 'undefined') {
+    apiKey = localStorage.getItem('anix_api_key') || "";
+  }
   
   if (!apiKey || apiKey === "undefined") {
     console.error("ERRO CRÍTICO: API_KEY não configurada no Vercel. Adicione em Settings > Environment Variables.");

@@ -78,7 +78,13 @@ const QRCodePlateGenerator: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      if (err.message?.includes("Requested entity was not found") || err.message?.includes("404")) {
+      if (err.message?.includes("API key is missing")) {
+        const key = prompt("Chave de API não encontrada. Insira sua Google GenAI API Key:");
+        if (key) {
+          localStorage.setItem('anix_api_key', key);
+          alert("Chave salva! Tente novamente.");
+        }
+      } else if (err.message?.includes("Requested entity was not found") || err.message?.includes("404")) {
         alert("Erro: Modelo de imagem não disponível ou chave de API sem permissão para o Imagen 3.");
       } else {
         alert(`Falha técnica ao gerar fundo com IA: ${err.message}`);
