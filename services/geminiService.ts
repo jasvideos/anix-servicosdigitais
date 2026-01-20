@@ -193,7 +193,23 @@ export const removeBackgroundAI = async (base64Image: string): Promise<string | 
 export const generateProfessionalResume = async (data: ResumeData): Promise<string> => {
   try {
     const ai = getAI();
-    const prompt = `Gere um currículo profissional em Markdown para ${data.fullName}. Dados: ${JSON.stringify(data)}. Foque em resultados e linguagem profissional.`;
+    const prompt = `Atue como um consultor de carreira sênior e especialista em RH. Crie um currículo profissional altamente competitivo em Markdown para ${data.fullName}.
+    
+    DADOS DO CANDIDATO:
+    ${JSON.stringify(data)}
+    
+    ESTRUTURA OBRIGATÓRIA (Use # para títulos):
+    # RESUMO PROFISSIONAL
+    (Crie uma narrativa executiva e persuasiva de 3-5 linhas)
+    # EXPERIÊNCIA PROFISSIONAL
+    (Use bullet points, verbos de ação e quantifique resultados quando possível)
+    # FORMAÇÃO ACADÊMICA
+    # HABILIDADES E COMPETÊNCIAS
+    
+    DIRETRIZES:
+    - Tom: Formal, Executivo e Persuasivo.
+    - Idioma: Português do Brasil (Corrija gramática e ortografia).
+    - Formatação: Limpa e organizada para fácil leitura.`;
     const response = await ai.models.generateContent({ 
       model: 'gemini-3-pro-preview', 
       contents: prompt 
