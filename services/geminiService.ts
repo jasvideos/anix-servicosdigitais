@@ -248,14 +248,17 @@ export const generateSignImage = async (prompt: string): Promise<string | null> 
   try {
     const ai = getAI();
     const response = await ai.models.generateContent({ 
-      model: 'gemini-2.5-flash-image', 
+      model: 'imagen-3.0-generate-001', 
       contents: { parts: [{ text: prompt }] } 
     });
     for (const part of response.candidates?.[0]?.content?.parts || []) { 
       if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`; 
     }
     return null;
-  } catch (e) { return null; }
+  } catch (e) { 
+    console.error("Erro na geração de imagem:", e);
+    throw e; 
+  }
 };
 
 export const generateColorPalette = async (theme: string): Promise<any> => {

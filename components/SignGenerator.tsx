@@ -116,8 +116,13 @@ const SignGenerator: React.FC = () => {
       } else {
         alert("Não foi possível encontrar ou gerar uma imagem para essa busca.");
       }
-    } catch (err) {
-      alert("Falha ao processar busca de imagem.");
+    } catch (err: any) {
+      console.error(err);
+      if (err.message?.includes("Requested entity was not found") || err.message?.includes("404")) {
+        alert("Erro: Modelo de imagem não disponível ou chave de API sem permissão para o Imagen 3.");
+      } else {
+        alert(`Falha ao processar busca de imagem: ${err.message || "Erro desconhecido"}`);
+      }
     } finally {
       setIsProcessingIA(false);
     }

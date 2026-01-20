@@ -76,8 +76,13 @@ const QRCodePlateGenerator: React.FC = () => {
       } else {
         alert("Não foi possível gerar uma imagem para esse fundo.");
       }
-    } catch (err) {
-      alert("Falha técnica ao gerar fundo com IA.");
+    } catch (err: any) {
+      console.error(err);
+      if (err.message?.includes("Requested entity was not found") || err.message?.includes("404")) {
+        alert("Erro: Modelo de imagem não disponível ou chave de API sem permissão para o Imagen 3.");
+      } else {
+        alert(`Falha técnica ao gerar fundo com IA: ${err.message}`);
+      }
     } finally {
       setIsProcessingIA(false);
     }
