@@ -14,7 +14,9 @@ const PrintMasterPro: React.FC = () => {
   const [fitMode, setFitMode] = useState<'contain' | 'cover'>('contain');
   const [isProcessing, setIsProcessing] = useState(false);
   const [dpi, setDpi] = useState(0);
-  const [showCropMarks, setShowCropMarks] = useState(false);
+  const [hasBorder, setHasBorder] = useState(false);
+  const [borderWidth, setBorderWidth] = useState(1); // in mm
+  const [borderColor, setBorderColor] = useState('#000000');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,15 +75,6 @@ const PrintMasterPro: React.FC = () => {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const drawCropMarks = (ctx: CanvasRenderingContext2D, w: number, h: number, size: number) => {
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, size); ctx.lineTo(0, 0); ctx.lineTo(size, 0); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(w - size, 0); ctx.lineTo(w, 0); ctx.lineTo(w, size); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, h - size); ctx.lineTo(0, h); ctx.lineTo(size, h); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(w - size, h); ctx.lineTo(w, h); ctx.lineTo(w, h - size); ctx.stroke();
   };
 
   const upscaleImage = async () => {
@@ -153,22 +146,16 @@ const PrintMasterPro: React.FC = () => {
   const getDpiColor = () => dpi >= 300 ? 'text-emerald-500' : dpi >= 150 ? 'text-amber-500' : 'text-rose-500';
 
   return (
-    <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in no-select h-[85vh]">
+    <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in no-select h-[85vh] print:block print:h-auto print:animate-none">
       <style>{`
         @media print {
-          .print-canvas-area { position: absolute; left: 0; top: 0; width: ${paperSize.w}mm; height: ${paperSize.h}mm; background: white; overflow: hidden; display: block !important; z-index: 9999; }
+          .print-canvas-area { position: fixed; left: 0; top: 0; width: ${paperSize.w}mm; height: ${paperSize.h}mm; background: white; overflow: hidden; display: block !important; z-index: 9999; box-sizing: border-box; border: ${hasBorder ? `${borderWidth}mm solid ${borderColor}` : 'none'}; }
           .print-img-wrap { position: absolute; left: ${position.x}%; top: ${position.y}%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); }
           .print-img { transform: scale(${scale/100}); width: ${fitMode === 'cover' ? (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? 'auto' : '100%') : (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? '100%' : 'auto')}; height: ${fitMode === 'cover' ? (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? '100%' : 'auto') : (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? 'auto' : '100%')}; }
-          .print-crop-mark { position: absolute; width: 10mm; height: 10mm; border: 0.5pt solid black; z-index: 50; }
-          .cm-tl { top: 0; left: 0; border-right: 0; border-bottom: 0; }
-          .cm-tr { top: 0; right: 0; border-left: 0; border-bottom: 0; }
-          .cm-bl { bottom: 0; left: 0; border-right: 0; border-top: 0; }
-          .cm-br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
           @page { size: ${paperSize.w}mm ${paperSize.h}mm; margin: 0; }
         }
         .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.3); }
         .checkerboard { background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%); background-size: 20px 20px; }
-        .crop-mark-preview { position: absolute; width: 20px; height: 20px; border: 1.5px solid black; pointer-events: none; z-index: 100; }
       `}</style>
 
       <div className="lg:col-span-4 flex flex-col gap-6 no-print">
@@ -189,6 +176,10 @@ const PrintMasterPro: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <button onClick={upscaleImage} disabled={isProcessing} className="bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest hover:bg-indigo-700 border border-indigo-100 shadow-lg">Super-Resolução IA</button>
               <button onClick={removeBg} disabled={isProcessing} className="bg-emerald-50 text-emerald-600 py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest hover:bg-emerald-100 border border-emerald-100">Remover Fundo</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <button onClick={handlePrint} disabled={!image || isProcessing} className="bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-lg hover:bg-blue-700 disabled:opacity-50">Imprimir Colorido</button>
+                <button onClick={handlePrint} disabled={!image || isProcessing} className="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-lg hover:bg-black disabled:opacity-50">Imprimir P&B</button>
             </div>
           </div>
 
@@ -211,11 +202,25 @@ const PrintMasterPro: React.FC = () => {
 
             <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <div className="flex justify-between items-center">
-                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Marcas de Corte (Físico)</label>
-                  <div onClick={() => setShowCropMarks(!showCropMarks)} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${showCropMarks ? 'bg-indigo-600' : 'bg-slate-300'}`}>
-                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${showCropMarks ? 'translate-x-5' : 'translate-x-0'}`} />
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Contorno da Impressão</label>
+                  <div onClick={() => setHasBorder(!hasBorder)} className={`w-10 h-5 rounded-full p-1 cursor-pointer transition-colors ${hasBorder ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${hasBorder ? 'translate-x-5' : 'translate-x-0'}`} />
                   </div>
                 </div>
+                {hasBorder && (
+                  <div className="space-y-3 pt-2 animate-fade-in">
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={borderColor} onChange={(e) => setBorderColor(e.target.value)} className="w-10 h-10 p-1 border border-slate-200 rounded-lg bg-white cursor-pointer" />
+                      <div className="flex-1">
+                        <div className="flex justify-between text-[8px] font-bold text-slate-500">
+                          <span>Espessura</span>
+                          <span>{borderWidth}mm</span>
+                        </div>
+                        <input type="range" min="0.5" max="10" step="0.1" value={borderWidth} onChange={(e) => setBorderWidth(Number(e.target.value))} className="w-full accent-indigo-600 h-1.5" />
+                      </div>
+                    </div>
+                  </div>
+                )}
             </div>
 
             <div className="space-y-4">
@@ -242,10 +247,6 @@ const PrintMasterPro: React.FC = () => {
               </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-6">
-            <button onClick={handlePrint} disabled={!image || isProcessing} className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl hover:bg-black active:scale-95 disabled:opacity-30">Imprimir</button>
-          </div>
         </div>
       </div>
 
@@ -266,18 +267,19 @@ const PrintMasterPro: React.FC = () => {
 
         <div className="flex-1 glass-panel rounded-[3rem] p-12 flex items-center justify-center overflow-auto checkerboard relative shadow-inner scrollbar-thin scrollbar-thumb-slate-300">
           <div 
-            style={{ width: orientation === 'portrait' ? '450px' : `${450 * (paperSize.w/paperSize.h)}px`, height: orientation === 'portrait' ? `${450 * (paperSize.h/paperSize.w)}px` : '450px', backgroundColor: 'white', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
-            className="shadow-[0_50px_100px_rgba(0,0,0,0.15)] relative overflow-visible transition-all duration-500 border border-slate-200"
+            style={{ 
+              width: orientation === 'portrait' ? '450px' : `${450 * (paperSize.w/paperSize.h)}px`, 
+              height: orientation === 'portrait' ? `${450 * (paperSize.h/paperSize.w)}px` : '450px', 
+              backgroundColor: 'white', 
+              flexShrink: 0, 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              border: hasBorder ? `${borderWidth * 2}px solid ${borderColor}` : '1px solid #e2e8f0',
+              boxSizing: 'border-box'
+            }} 
+            className="shadow-[0_50px_100px_rgba(0,0,0,0.15)] relative overflow-visible transition-all duration-500"
           >
-            {showCropMarks && (
-              <>
-                <div className="crop-mark-preview cm-tl" style={{ top: '-1px', left: '-1px', borderRight: 0, borderBottom: 0 }}></div>
-                <div className="crop-mark-preview cm-tr" style={{ top: '-1px', right: '-1px', borderLeft: 0, borderBottom: 0 }}></div>
-                <div className="crop-mark-preview cm-bl" style={{ bottom: '-1px', left: '-1px', borderRight: 0, borderTop: 0 }}></div>
-                <div className="crop-mark-preview cm-br" style={{ bottom: '-1px', right: '-1px', borderLeft: 0, borderTop: 0 }}></div>
-              </>
-            )}
-
             <div className="absolute inset-0 overflow-hidden">
               {image && (
                 <img 
@@ -303,14 +305,6 @@ const PrintMasterPro: React.FC = () => {
             <div className="print-img-wrap">
               <img src={image} className="print-img" />
             </div>
-            {showCropMarks && (
-              <>
-                <div className="print-crop-mark cm-tl"></div>
-                <div className="print-crop-mark cm-tr"></div>
-                <div className="print-crop-mark cm-bl"></div>
-                <div className="print-crop-mark cm-br"></div>
-              </>
-            )}
           </>
         )}
       </div>
