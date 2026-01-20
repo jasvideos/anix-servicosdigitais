@@ -242,14 +242,25 @@ const SignGenerator: React.FC = () => {
       if (bodyImage) {
         const img = new Image();
         img.onload = () => {
-          const imageSize = Math.min(bodyHeight * 0.85, bodySafeWidth * 0.45);
-          const imgX = (canvas.width * 0.92) - imageSize;
-          const imgY = bodyStartY + (bodyHeight - imageSize) / 2;
-          ctx!.drawImage(img, imgX, imgY, imageSize, imageSize);
+          const maxImgW = bodySafeWidth * 0.45;
+          const maxImgH = bodyHeight * 0.95;
           
-          const textMaxWidth = bodySafeWidth - imageSize - (canvas.width * 0.05);
-          const textX = canvas.width * 0.08;
-          drawTextWrapped(subtitle, textX, bodyCenterY, subtitleFontSize, textMaxWidth, bodyTextColor, 'left');
+          let drawW = maxImgW;
+          let drawH = maxImgW;
+
+          const imgRatio = img.width / img.height;
+          const containerRatio = maxImgW / maxImgH;
+
+          if (imgRatio > containerRatio) { drawW = maxImgW; drawH = maxImgW / imgRatio; } 
+          else { drawH = maxImgH; drawW = maxImgH * imgRatio; }
+
+          const imgX = (canvas.width * 0.95) - drawW;
+          const imgY = bodyCenterY - (drawH / 2);
+          ctx!.drawImage(img, imgX, imgY, drawW, drawH);
+          
+          const textMaxWidth = (imgX - (canvas.width * 0.05)) - (canvas.width * 0.05);
+          const textCenterX = (canvas.width * 0.05) + (textMaxWidth / 2);
+          drawTextWrapped(subtitle, textCenterX, bodyCenterY, subtitleFontSize, textMaxWidth, bodyTextColor, 'center');
           finalizeAndDownload(canvas, title);
         };
         img.src = bodyImage;
@@ -469,8 +480,8 @@ const SignGenerator: React.FC = () => {
           />
 
           {/* Corpo */}
-          <div className={`flex-1 w-full flex ${bodyImage ? 'flex-row items-center justify-between' : 'flex-col items-center justify-center'} z-10 px-[8%] gap-[6%] overflow-hidden py-[4%]`}>
-            <div className={`flex flex-col ${bodyImage ? 'flex-[1.8] text-left items-start' : 'w-full text-center items-center'} justify-center overflow-hidden min-w-0`}>
+          <div className={`flex-1 w-full flex ${bodyImage ? 'flex-row items-center justify-between' : 'flex-col items-center justify-center'} z-10 px-[6%] gap-[4%] overflow-hidden py-[4%]`}>
+            <div className={`flex flex-col ${bodyImage ? 'flex-[1.5] text-center items-center' : 'w-full text-center items-center'} justify-center overflow-hidden min-w-0`}>
               <h2 
                 onMouseDown={(e) => { e.stopPropagation(); setResizing('subtitle-font'); }}
                 style={{ fontSize: `${subtitleFontSize}cqw`, color: bodyTextColor }}
@@ -596,16 +607,16 @@ const SignGenerator: React.FC = () => {
               flex-direction: ${bodyImage ? 'row' : 'column'} !important;
               align-items: center !important;
               justify-content: ${bodyImage ? 'space-between' : 'center'} !important;
-              gap: 4vw !important;
-              padding: 4% 8% !important;
+              gap: 3vw !important;
+              padding: 4% 6% !important;
               overflow: hidden !important;
             }
             .print-text-col {
-              flex: ${bodyImage ? '1.8' : '1'} !important;
+              flex: ${bodyImage ? '1.5' : '1'} !important;
               display: flex !important;
               flex-direction: column !important;
               justify-content: center !important;
-              text-align: ${bodyImage ? 'left' : 'center'} !important;
+              text-align: center !important;
               min-width: 0 !important;
             }
             .print-text {
