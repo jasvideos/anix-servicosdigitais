@@ -281,6 +281,17 @@ const QRCodePlateGenerator: React.FC = () => {
             </label>
           </div>
 
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">Dados PIX (Multilinha permitido)</label>
+            <textarea 
+              rows={3}
+              value={pixKey} 
+              onChange={(e) => setPixKey(e.target.value)} 
+              placeholder="Chave PIX&#10;Nome do Beneficiário&#10;Banco" 
+              className="w-full border border-slate-100 bg-slate-50 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner resize-none text-sm"
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">Cor de Fundo</label>
@@ -336,17 +347,6 @@ const QRCodePlateGenerator: React.FC = () => {
                  )}
                </div>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">Dados PIX (Multilinha permitido)</label>
-            <textarea 
-              rows={3}
-              value={pixKey} 
-              onChange={(e) => setPixKey(e.target.value)} 
-              placeholder="Chave PIX&#10;Nome do Beneficiário&#10;Banco" 
-              className="w-full border border-slate-100 bg-slate-50 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner resize-none text-sm"
-            />
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-4">
