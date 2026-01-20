@@ -193,10 +193,14 @@ export const removeBackgroundAI = async (base64Image: string): Promise<string | 
 export const generateProfessionalResume = async (data: ResumeData): Promise<string> => {
   try {
     const ai = getAI();
+
+    // Remove a foto (base64) dos dados enviados para o prompt de texto para economizar tokens e evitar erros
+    const { photoBase64, ...textData } = data as any;
+
     const prompt = `Atue como um consultor de carreira sênior e especialista em RH. Crie um currículo profissional altamente competitivo em Markdown para ${data.fullName}.
     
     DADOS DO CANDIDATO:
-    ${JSON.stringify(data)}
+    ${JSON.stringify(textData)}
     
     ESTRUTURA OBRIGATÓRIA (Use # para títulos):
     # RESUMO PROFISSIONAL
