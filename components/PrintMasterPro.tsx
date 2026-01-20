@@ -18,6 +18,7 @@ const PrintMasterPro: React.FC = () => {
   const [borderWidth, setBorderWidth] = useState(1); // in mm
   const [borderColor, setBorderColor] = useState('#000000');
   const [showFullSize, setShowFullSize] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -201,6 +202,67 @@ const PrintMasterPro: React.FC = () => {
     img.src = image;
   };
 
+  const handleViewRealSize = () => {
+    if (!image) return;
+    setIsProcessing(true);
+
+    // Timeout para permitir que a UI mostre o estado de carregamento antes do processamento pesado
+    setTimeout(() => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { setIsProcessing(false); return; }
+
+      const dpiScale = 11.811; // 300 DPI
+      const widthPx = paperSize.w * dpiScale;
+      const heightPx = paperSize.h * dpiScale;
+
+      canvas.width = widthPx;
+      canvas.height = heightPx;
+
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, widthPx, heightPx);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, widthPx, heightPx);
+      ctx.clip();
+
+      const img = new Image();
+      img.onload = () => {
+        const paperRatio = paperSize.w / paperSize.h;
+        const imgRatio = img.width / img.height;
+        let baseW, baseH;
+
+        if (fitMode === 'cover') {
+          if (imgRatio > paperRatio) { baseH = paperSize.h; baseW = baseH * imgRatio; } 
+          else { baseW = paperSize.w; baseH = baseW / imgRatio; }
+        } else {
+          if (imgRatio > paperRatio) { baseW = paperSize.w; baseH = baseW / imgRatio; } 
+          else { baseH = paperSize.h; baseW = baseH * imgRatio; }
+        }
+
+        const finalW = baseW * (scale / 100) * dpiScale;
+        const finalH = baseH * (scale / 100) * dpiScale;
+        const centerX = (paperSize.w * (position.x / 100)) * dpiScale;
+        const centerY = (paperSize.h * (position.y / 100)) * dpiScale;
+
+        ctx.drawImage(img, centerX - (finalW / 2), centerY - (finalH / 2), finalW, finalH);
+        ctx.restore();
+
+        if (hasBorder) {
+          const bwPx = borderWidth * dpiScale;
+          ctx.strokeStyle = borderColor; ctx.lineWidth = bwPx;
+          ctx.strokeRect(bwPx/2, bwPx/2, widthPx - bwPx, heightPx - bwPx);
+        }
+
+        setPreviewUrl(canvas.toDataURL('image/jpeg', 0.8));
+        setShowFullSize(true);
+        setIsProcessing(false);
+      };
+      img.src = image;
+    }, 100);
+  };
+
   return (
     <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in no-select h-[85vh] print:block print:h-auto print:animate-none">
       <style>{`
@@ -321,7 +383,7 @@ const PrintMasterPro: React.FC = () => {
           </div>
           {image && (
             <div className="flex gap-3">
-              <button onClick={() => setShowFullSize(true)} className="bg-white text-slate-600 px-4 py-2 rounded-xl font-black uppercase text-[9px] tracking-widest border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 transition-all flex items-center gap-2">
+              <button onClick={handleViewRealSize} disabled={isProcessing} className="bg-white text-slate-600 px-4 py-2 rounded-xl font-black uppercase text-[9px] tracking-widest border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 transition-all flex items-center gap-2 disabled:opacity-50">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg> Ver Real
               </button>
               <button onClick={saveAsPNG} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2">Salvar PNG</button>
@@ -373,11 +435,11 @@ const PrintMasterPro: React.FC = () => {
         )}
       </div>
 
-      {showFullSize && image && (
+      {showFullSize && previewUrl && (
         <div className="fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-8" onClick={() => setShowFullSize(false)}>
           <div className="relative w-full h-full overflow-auto flex items-center justify-center" onClick={e => e.stopPropagation()}>
              <button onClick={() => setShowFullSize(false)} className="fixed top-6 right-6 bg-white text-slate-900 p-3 rounded-full shadow-2xl z-[110] hover:bg-rose-50 hover:text-rose-600 transition-all"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg></button>
-             <img src={image} className="max-w-none shadow-2xl" style={{ transform: 'scale(1)' }} alt="Full Size" />
+             <img src={previewUrl} className="max-w-none shadow-2xl" style={{ transform: 'scale(1)' }} alt="Full Size Preview" />
           </div>
         </div>
       )}
