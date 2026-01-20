@@ -310,10 +310,10 @@ const PhotoA4Generator: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in no-select h-full">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in no-select h-full print:block print:h-auto print:animate-none">
       <style>{`
         @media print {
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: white; display: block !important; z-index: 9999; }
+          .print-area { position: absolute; left: 0; top: 0; width: 100%; height: auto; min-height: 100%; background: white; display: block !important; z-index: 9999; }
           .print-page { width: ${orientation === 'portrait' ? pageSize.w : pageSize.h}mm; height: ${orientation === 'portrait' ? pageSize.h : pageSize.w}mm; display: flex; flex-wrap: wrap; gap: ${gapMm}mm; justify-content: flex-start; align-content: flex-start; padding: 8mm; box-sizing: border-box; page-break-after: always; margin: 0 auto; }
         }
         .checkerboard { background-image: linear-gradient(45deg, #f8fafc 25%, transparent 25%), linear-gradient(-45deg, #f8fafc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f8fafc 75%), linear-gradient(-45deg, transparent 75%, #f8fafc 75%); background-size: 20px 20px; }

@@ -10,7 +10,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, currentView, onBack, onNavigate }) => {
   return (
-    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden print:h-auto print:overflow-visible print:bg-white print:block">
       <header className="bg-white border-b border-slate-200 shrink-0 no-print">
         <div className="max-w-[1800px] mx-auto px-6 h-16 flex items-center justify-between">
           <div 
@@ -58,8 +58,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onBack, onNaviga
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-[1800px] mx-auto overflow-hidden flex flex-col print:overflow-visible print:max-w-none">
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 print:p-0">
+      <main className="flex-1 w-full max-w-[1800px] mx-auto overflow-hidden flex flex-col print:overflow-visible print:max-w-none print:h-auto print:block">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 print:p-0 print:overflow-visible print:h-auto print:block">
           {children}
         </div>
       </main>
