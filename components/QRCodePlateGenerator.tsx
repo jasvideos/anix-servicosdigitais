@@ -268,6 +268,19 @@ const QRCodePlateGenerator: React.FC = () => {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">QR Code de Pagamento</label>
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-[2rem] cursor-pointer hover:bg-slate-50 transition-colors group">
+              <div className="text-center">
+                <svg className="w-6 h-6 mx-auto mb-2 text-slate-300 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01" />
+                </svg>
+                <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Anexar QR Code (Obrigatório)</span>
+              </div>
+              <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+            </label>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">Cor de Fundo</label>
@@ -334,19 +347,6 @@ const QRCodePlateGenerator: React.FC = () => {
               placeholder="Chave PIX&#10;Nome do Beneficiário&#10;Banco" 
               className="w-full border border-slate-100 bg-slate-50 rounded-2xl px-6 py-4 outline-none font-bold shadow-inner resize-none text-sm"
             />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest px-1">QR Code de Pagamento</label>
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-[2rem] cursor-pointer hover:bg-slate-50 transition-colors group">
-              <div className="text-center">
-                <svg className="w-6 h-6 mx-auto mb-2 text-slate-300 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01" />
-                </svg>
-                <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Anexar QR Code (Obrigatório)</span>
-              </div>
-              <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
-            </label>
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-4">
