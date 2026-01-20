@@ -82,16 +82,22 @@ const PrintMasterPro: React.FC = () => {
   const upscaleImage = async () => {
     if (!image) return;
 
-    // Check for API Key first (Required for gemini-3-pro-image-preview)
-    const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-    if (!hasKey) {
-      await (window as any).aistudio.openSelectKey();
-      // Assume success after dialog opens as per instructions
+    // Safe check for AI Studio environment
+    try {
+      if ((window as any).aistudio?.hasSelectedApiKey) {
+        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          await (window as any).aistudio.openSelectKey();
+        }
+      }
+    } catch (e) {
+      console.warn("AI Studio integration skipped");
     }
 
     setIsProcessing(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY || (import.meta as any).env?.VITE_API_KEY || "";
+      const ai = new GoogleGenAI({ apiKey });
       const base64 = image.includes(',') ? image.split(',')[1] : image;
       
       const response = await ai.models.generateContent({
@@ -120,11 +126,11 @@ const PrintMasterPro: React.FC = () => {
       }
     } catch (err: any) {
       console.error(err);
-      if (err.message?.includes("Requested entity was not found")) {
+      if (err.message?.includes("Requested entity was not found") && (window as any).aistudio) {
         alert("Erro de chave de API. Por favor, selecione uma chave válida de um projeto com faturamento ativo.");
         await (window as any).aistudio.openSelectKey();
       } else {
-        alert("Falha na melhoria de resolução por IA. Verifique sua conexão ou cota da API.");
+        alert(`Falha na melhoria de resolução por IA: ${err.message || "Erro desconhecido"}`);
       }
     } finally {
       setIsProcessing(false);
