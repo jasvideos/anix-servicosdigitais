@@ -95,6 +95,19 @@ const SignGenerator: React.FC = () => {
 
   const handleSearchImageIA = async () => {
     if (!imageSearchQuery.trim()) return;
+
+    // Safe check for AI Studio environment
+    try {
+      if ((window as any).aistudio?.hasSelectedApiKey) {
+        const hasKey = await (window as any).aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+          await (window as any).aistudio.openSelectKey();
+        }
+      }
+    } catch (e) {
+      console.warn("AI Studio integration skipped");
+    }
+
     setIsProcessingIA(true);
     try {
       const result = await generateSignImage(imageSearchQuery);
