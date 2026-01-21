@@ -43,6 +43,14 @@ const FinancialControl: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [newUser, setNewUser] = useState({ username: '', password: '' });
 
+  // States de Data (Novo)
+  const getTodayISO = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const [entryDate, setEntryDate] = useState(getTodayISO());
+  const [filterDate, setFilterDate] = useState(getTodayISO());
+
   // States para Formulários
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
@@ -204,14 +212,20 @@ const FinancialControl: React.FC = () => {
   const totalOut = entries.filter(e => e.type === 'OUT').reduce((acc, curr) => acc + curr.amount, 0);
   const balance = initialCash + totalIn - totalOut;
 
+  const formatDateBr = (isoDate: string) => {
+    if (!isoDate) return '';
+    const [y, m, d] = isoDate.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
   const addEntry = () => {
-    if (!desc || !amount || !type) return;
+    if (!desc || !amount || !type || !entryDate) return;
     const newEntry: Entry = {
       id: Date.now(),
       description: desc.toUpperCase(),
       amount: parseFloat(amount),
       type: type,
-      date: new Date().toLocaleDateString('pt-BR')
+      date: formatDateBr(entryDate)
     };
     setEntries([newEntry, ...entries]);
     setDesc('');
@@ -326,6 +340,11 @@ const FinancialControl: React.FC = () => {
 
   const overdueCount = bills.filter(b => getBillStatus(b.dueDate) === 'OVERDUE').length;
   const isFormValid = desc.trim() !== '' && amount !== '' && type !== null;
+
+  // Filtros para exibição na Fita
+  const filteredEntries = entries.filter(e => e.date === formatDateBr(filterDate));
+  const dailyIn = filteredEntries.filter(e => e.type === 'IN').reduce((acc, curr) => acc + curr.amount, 0);
+  const dailyOut = filteredEntries.filter(e => e.type === 'OUT').reduce((acc, curr) => acc + curr.amount, 0);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-24">
@@ -582,6 +601,7 @@ const FinancialControl: React.FC = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">O que está entrando/saindo?</label>
+                  <input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className="w-full border border-slate-100 bg-slate-50 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500 mb-2" />
                   <input list="saved-descriptions" placeholder="Ex: XEROX, EDP, SIMPLES..." value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full border border-slate-100 bg-slate-50 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500 uppercase" />
                   
                   {/* Atalhos Rápidos */}
@@ -621,6 +641,7 @@ const FinancialControl: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-4">
                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Fita do Caixa (Histórico)</h3>
+                <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-600 outline-none focus:border-indigo-500" />
                 <button 
                   onClick={() => setIsClosingDay(true)}
                   disabled={entries.length === 0}
@@ -632,16 +653,16 @@ const FinancialControl: React.FC = () => {
               </div>
               <div className="flex gap-4 items-center">
                 <div className="text-[8px] font-black uppercase text-slate-400">Resumo:</div>
-                <div className="text-[9px] font-black text-emerald-600 italic">+{totalIn.toFixed(2)}</div>
-                <div className="text-[9px] font-black text-rose-600 italic">-{totalOut.toFixed(2)}</div>
+                <div className="text-[9px] font-black text-emerald-600 italic">+{dailyIn.toFixed(2)}</div>
+                <div className="text-[9px] font-black text-rose-600 italic">-{dailyOut.toFixed(2)}</div>
               </div>
             </div>
 
             <div className="space-y-3 max-h-[650px] overflow-y-auto no-scrollbar pr-1">
-              {entries.length === 0 ? (
-                <div className="py-20 text-center opacity-20"><p className="text-[10px] font-black uppercase tracking-widest">Caixa Vazio</p></div>
+              {filteredEntries.length === 0 ? (
+                <div className="py-20 text-center opacity-20"><p className="text-[10px] font-black uppercase tracking-widest">Nenhum registro nesta data</p></div>
               ) : (
-                entries.map(e => (
+                filteredEntries.map(e => (
                   <div key={e.id} className="group flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-200 transition-all">
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${e.type === 'IN' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>{e.type === 'IN' ? '+' : '-'}</div>
