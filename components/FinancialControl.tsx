@@ -18,6 +18,12 @@ interface Bill {
   status: 'PENDING' | 'PAID';
 }
 
+interface User {
+  id: number;
+  username: string;
+  password: string; // Em produção, usar hash/salt
+}
+
 type FinancialTab = 'CAIXA' | 'FLUXO' | 'CONTAS';
 
 const FinancialControl: React.FC = () => {
@@ -31,6 +37,11 @@ const FinancialControl: React.FC = () => {
   // States para Relatórios e Fechamento
   const [reportType, setReportType] = useState<'IN' | 'OUT' | null>(null);
   const [isClosingDay, setIsClosingDay] = useState(false);
+
+  // States para Administração (Usuários/Senhas)
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [newUser, setNewUser] = useState({ username: '', password: '' });
 
   // States para Formulários
   const [desc, setDesc] = useState('');
@@ -70,6 +81,13 @@ const FinancialControl: React.FC = () => {
 
     const savedBackupDate = localStorage.getItem('anix_last_backup');
     if (savedBackupDate) setLastBackup(savedBackupDate);
+
+    const savedUsers = localStorage.getItem('anix_users');
+    if (savedUsers) {
+      setUsers(JSON.parse(savedUsers));
+    } else {
+      setUsers([{ id: 1, username: 'admin', password: '1234' }]); // Usuário padrão
+    }
   }, []);
 
   // 2. PERSISTÊNCIA
@@ -90,6 +108,10 @@ const FinancialControl: React.FC = () => {
       localStorage.setItem('anix_saved_descriptions', JSON.stringify(savedDescriptions));
     }
   }, [savedDescriptions]);
+
+  useEffect(() => {
+    localStorage.setItem('anix_users', JSON.stringify(users));
+  }, [users]);
 
   // FUNÇÕES DE EXPORTAÇÃO (BANCO DE DADOS)
   const exportDatabase = () => {
@@ -251,11 +273,34 @@ const FinancialControl: React.FC = () => {
     return 'UPCOMING';
   };
 
+  // Gestão de Usuários
+  const handleAddUser = () => {
+    if (!newUser.username || !newUser.password) return;
+    const user: User = {
+      id: Date.now(),
+      username: newUser.username,
+      password: newUser.password
+    };
+    setUsers([...users, user]);
+    setNewUser({ username: '', password: '' });
+  };
+
+  const handleDeleteUser = (id: number) => {
+    if (users.length <= 1) {
+      alert("Você não pode excluir o último usuário do sistema.");
+      return;
+    }
+    if (window.confirm("Tem certeza que deseja remover este usuário?")) {
+      setUsers(users.filter(u => u.id !== id));
+    }
+  };
+
   const getAIAdvice = async () => {
     if (entries.length === 0) {
       setAiInsight("Adicione alguns lançamentos para que a IA possa analisar sua saúde financeira.");
       return;
     }
+    
     setIsLoading(true);
     try {
       const insight = await analyzeFinanceIA(balance, entries.slice(0, 15));
@@ -264,6 +309,18 @@ const FinancialControl: React.FC = () => {
       setAiInsight("Houve um erro técnico ao buscar os conselhos da consultoria. Tente novamente em instantes.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSecureAction = (action: () => void) => {
+    const pwd = prompt("🔒 ACESSO RESTRITO\nDigite sua senha de administrador:");
+    if (!pwd) return;
+    
+    const isValid = users.some(u => u.password === pwd);
+    if (isValid) {
+      action();
+    } else {
+      alert("Senha incorreta! Acesso negado.");
     }
   };
 
@@ -400,6 +457,53 @@ const FinancialControl: React.FC = () => {
         </div>
       )}
 
+      {/* Modal Painel Administrativo */}
+      {showAdminPanel && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => setShowAdminPanel(false)}></div>
+          <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden animate-fade-in">
+            <div className="p-8 bg-slate-800 text-white flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-black uppercase tracking-tighter">Painel Administrativo</h3>
+                <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Gerenciar Acessos e Senhas</p>
+              </div>
+              <button onClick={() => setShowAdminPanel(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-8 space-y-8">
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Adicionar Novo Usuário</h4>
+                <div className="flex gap-4">
+                  <input type="text" placeholder="Nome de Usuário" value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})} className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-indigo-500" />
+                  <input type="text" placeholder="Senha" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold outline-none focus:border-indigo-500" />
+                  <button onClick={handleAddUser} className="bg-indigo-600 text-white px-6 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-indigo-700 transition-colors">Adicionar</button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">Usuários Cadastrados</h4>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                  {users.map(user => (
+                    <div key={user.id} className="flex justify-between items-center p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-black text-xs">
+                          {user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-bold text-slate-700">{user.username}</span>
+                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded text-slate-400 font-mono">Senha: {user.password}</span>
+                      </div>
+                      <button onClick={() => handleDeleteUser(user.id)} className="text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition-colors text-[10px] font-black uppercase tracking-widest">Remover</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header com Saldo Dinâmico */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -414,6 +518,12 @@ const FinancialControl: React.FC = () => {
         </div>
         
         <div className="flex gap-4">
+          <button onClick={() => handleSecureAction(() => setShowAdminPanel(true))} className="bg-slate-900 text-white p-5 rounded-3xl shadow-lg hover:bg-slate-800 transition-all group" title="Painel Administrativo">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 group-hover:rotate-90 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
           <div className="bg-white px-8 py-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col items-end">
             <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Saldo Disponível</span>
             <span className={`text-2xl font-black ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -634,7 +744,7 @@ const FinancialControl: React.FC = () => {
             <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm space-y-8">
               <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Dicas da Consultoria IA</h3>
               <div className="space-y-4">
-                <button onClick={getAIAdvice} disabled={isLoading || entries.length === 0} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-indigo-700 disabled:opacity-50 transition-all">Analisar Minha Saúde Financeira</button>
+                <button onClick={() => handleSecureAction(getAIAdvice)} disabled={isLoading || entries.length === 0} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-indigo-700 disabled:opacity-50 transition-all">Analisar Minha Saúde Financeira</button>
                 {aiInsight && <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 italic text-sm text-slate-700 leading-relaxed">"{aiInsight}"</div>}
               </div>
             </div>

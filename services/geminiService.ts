@@ -87,13 +87,8 @@ export const polishReceiptDescription = async (desc: string): Promise<string> =>
 /**
  * Analisa o fluxo de caixa e fornece insights estratégicos.
  */
-export const analyzeFinanceIA = async (balance: number, entries: any[], password?: string): Promise<string> => {
+export const analyzeFinanceIA = async (balance: number, entries: any[]): Promise<string> => {
   try {
-    // Proteção de segurança para o módulo Caixa
-    if (password !== "1234") {
-      return "🔒 Acesso Negado: Senha incorreta para visualizar insights financeiros.";
-    }
-
     const ai = getAI();
     const prompt = `Analise o seguinte resumo financeiro de uma microempresa (copiadora):
       Saldo Atual: R$ ${balance}
