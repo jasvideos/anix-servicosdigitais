@@ -20,6 +20,7 @@ const getAI = () => {
 
 const resizeImage = async (base64Str: string, maxWidth = 1024): Promise<string> => {
   if (typeof window === 'undefined') return base64Str;
+  if (base64Str.startsWith('data:application/pdf')) return base64Str;
   
   return new Promise((resolve) => {
     const img = new Image();
@@ -101,6 +102,35 @@ export const analyzeFinanceIA = async (balance: number, entries: any[]): Promise
     return response.text || "Continue monitorando suas entradas e saídas.";
   } catch (err) {
     return "Falha ao processar insights financeiros.";
+  }
+};
+
+/**
+ * Analisa documentos (PDF ou Imagem) e extrai informações ou gera insights.
+ */
+export const analyzeDocumentIA = async (base64File: string, prompt: string): Promise<string> => {
+  try {
+    const ai = getAI();
+    
+    // Extrai mimeType e dados puros do base64
+    const mimeType = base64File.startsWith('data:application/pdf') ? 'application/pdf' : 
+                     base64File.startsWith('data:image/') ? base64File.substring(5, base64File.indexOf(';')) : 'application/pdf';
+    
+    const base64Data = base64File.includes(',') ? base64File.split(',')[1] : base64File;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: {
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType, data: base64Data } }
+        ]
+      }
+    });
+    return response.text?.trim() || "Não foi possível analisar o documento.";
+  } catch (err) {
+    console.error("Erro ao analisar documento:", err);
+    return "Erro técnico ao processar documento.";
   }
 };
 
