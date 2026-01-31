@@ -1,6 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { removeBackgroundAI } from '../services/geminiService';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configura o worker para o pdf.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 const PhotoGenerator: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
@@ -9,6 +13,7 @@ const PhotoGenerator: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   
   const [zoom, setZoom] = useState(1.0);
+  const [rotation, setRotation] = useState(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -50,6 +55,7 @@ const PhotoGenerator: React.FC = () => {
         const captured = canvas.toDataURL('image/jpeg', 0.95);
         setRawImage(captured);
         setZoom(1.0);
+        setRotation(0);
         setPosition({ x: 0, y: 0 });
         stopCamera();
         setIsCropping(true);
@@ -68,14 +74,43 @@ const PhotoGenerator: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setRawImage(reader.result as string);
-        setZoom(1.0);
-        setPosition({ x: 0, y: 0 });
-        setIsCropping(true);
-      };
-      reader.readAsDataURL(file);
+      if (file.type === 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          if (!event.target?.result) return;
+          const typedarray = new Uint8Array(event.target.result as ArrayBuffer);
+          try {
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 3.0 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            if (context) {
+              await page.render({ canvasContext: context, viewport: viewport }).promise;
+              setRawImage(canvas.toDataURL('image/jpeg'));
+              setZoom(1.0);
+              setRotation(0);
+              setPosition({ x: 0, y: 0 });
+              setIsCropping(true);
+            }
+          } catch (error) {
+            alert('Erro ao processar PDF.');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setRawImage(reader.result as string);
+          setZoom(1.0);
+          setRotation(0);
+          setPosition({ x: 0, y: 0 });
+          setIsCropping(true);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -129,6 +164,7 @@ const PhotoGenerator: React.FC = () => {
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
         ctx.translate(position.x * canvasScale, position.y * canvasScale);
+        ctx.rotate((rotation * Math.PI) / 180);
         ctx.drawImage(img, -finalW / 2, -finalH / 2, finalW, finalH);
         ctx.restore();
 
@@ -270,7 +306,7 @@ const PhotoGenerator: React.FC = () => {
                     <img 
                       src={rawImage} className="max-w-none absolute pointer-events-none" 
                       style={{ 
-                        transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                        transform: `translate(${position.x}px, ${position.y}px) scale(${zoom}) rotate(${rotation}deg)`,
                         transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
                         transformOrigin: 'center center',
                         width: '100%'
@@ -287,6 +323,12 @@ const PhotoGenerator: React.FC = () => {
                     <div className="flex items-center gap-4">
                       <span className="text-[10px] font-black text-white uppercase tracking-widest">Zoom</span>
                       <input type="range" min="0.5" max="5" step="0.01" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="flex-1 accent-indigo-500 h-2 rounded-lg" />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest">Girar</span>
+                      <button onClick={() => setRotation((prev) => (prev + 90) % 360)} className="bg-slate-800 text-white p-2 rounded-lg hover:bg-slate-700 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                      </button>
                     </div>
                     <div className="flex gap-3">
                       <button onClick={() => { setIsCropping(false); setRawImage(null); }} className="flex-1 bg-slate-800 text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest">Descartar</button>
@@ -317,7 +359,7 @@ const PhotoGenerator: React.FC = () => {
               <button onClick={startCamera} className="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-black transition-all">Iniciar Câmera</button>
               <label className="bg-white border-2 border-slate-200 text-slate-800 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest cursor-pointer text-center hover:bg-slate-50 transition-all">
                 Abrir Arquivo
-                <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                <input type="file" className="hidden" accept=".jpg,.jpeg,.gif,.png,.svg,.psd,.webp,.raw,.tiff,.tif,.bmp,.pdf,image/*,application/pdf" onChange={handleFileUpload} />
               </label>
             </div>
             {image && !isCropping && (

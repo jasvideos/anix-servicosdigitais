@@ -2,16 +2,31 @@
 import { GoogleGenAI } from "@google/genai";
 import React, { useEffect, useRef, useState } from 'react';
 import { removeBackgroundAI } from '../services/geminiService';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configura o worker para o pdf.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+interface PrintItem {
+  id: string;
+  src: string;
+  width: number;
+  height: number;
+  scale: number;
+  rotation: number;
+  x: number;
+  y: number;
+  fitMode: 'contain' | 'cover';
+  pageIndex: number;
+}
 
 const PrintMasterPro: React.FC = () => {
-  const [image, setImage] = useState<string | null>(null);
-  const [originalImage, setOriginalImage] = useState<string | null>(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [items, setItems] = useState<PrintItem[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paperSize, setPaperSize] = useState({ name: 'A4', w: 210, h: 297 });
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
-  const [scale, setScale] = useState(100);
-  const [position, setPosition] = useState({ x: 50, y: 50 });
-  const [fitMode, setFitMode] = useState<'contain' | 'cover'>('contain');
+  const [pageCount, setPageCount] = useState(1);
+  const [currentPage, setCurrentPage] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [dpi, setDpi] = useState(0);
   const [hasBorder, setHasBorder] = useState(false);
@@ -21,6 +36,10 @@ const PrintMasterPro: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const selectedItem = items.find(i => i.id === selectedId) || null;
+
+  const currentItems = items.filter(i => i.pageIndex === currentPage);
 
   const PRESETS = [
     { name: 'A4', w: 210, h: 297 },
@@ -39,14 +58,14 @@ const PrintMasterPro: React.FC = () => {
   }, [orientation]);
 
   useEffect(() => {
-    if (dimensions.width && dimensions.height && image) {
+    if (selectedItem) {
       const paperWidthInches = paperSize.w / 25.4;
       const paperHeightInches = paperSize.h / 25.4;
       let occupiedWidthInches = paperWidthInches;
       
-      if (fitMode === 'contain') {
+      if (selectedItem.fitMode === 'contain') {
         const paperRatio = paperSize.w / paperSize.h;
-        const imgRatio = dimensions.width / dimensions.height;
+        const imgRatio = selectedItem.width / selectedItem.height;
         if (imgRatio > paperRatio) {
           occupiedWidthInches = paperWidthInches;
         } else {
@@ -54,33 +73,92 @@ const PrintMasterPro: React.FC = () => {
         }
       }
 
-      const finalWidthOnPaperInches = occupiedWidthInches * (scale / 100);
-      const currentDpi = dimensions.width / finalWidthOnPaperInches;
+      const finalWidthOnPaperInches = occupiedWidthInches * (selectedItem.scale / 100);
+      const currentDpi = selectedItem.width / finalWidthOnPaperInches;
       setDpi(Math.round(currentDpi));
+    } else {
+      setDpi(0);
     }
-  }, [dimensions, paperSize, scale, fitMode, image]);
+  }, [selectedItem, paperSize]);
+
+  const updateSelectedItem = (updates: Partial<PrintItem>) => {
+    if (!selectedId) return;
+    setItems(prev => prev.map(item => item.id === selectedId ? { ...item, ...updates } : item));
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          setDimensions({ width: img.width, height: img.height });
-          setOriginalImage(event.target?.result as string);
-          setImage(event.target?.result as string);
-          setScale(100);
-          setPosition({ x: 50, y: 50 });
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach((file, index) => {
+      const id = Math.random().toString(36).substr(2, 9);
+      const targetPage = currentPage + index;
+      setPageCount(prev => Math.max(prev, targetPage + 1));
+
+      if (file.type === 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          if (!event.target?.result) return;
+          const typedarray = new Uint8Array(event.target.result as ArrayBuffer);
+          try {
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 3.0 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            if (context) {
+              await page.render({ canvasContext: context, viewport: viewport }).promise;
+              const imgData = canvas.toDataURL('image/jpeg');
+              setItems(prev => [...prev, {
+                id,
+                src: imgData,
+                width: canvas.width,
+                height: canvas.height,
+                scale: 100,
+                rotation: 0,
+                x: 50,
+                y: 50,
+                fitMode: 'contain',
+                pageIndex: targetPage
+              }]);
+              setSelectedId(id);
+            }
+          } catch (error) {
+            alert('Erro ao ler PDF');
+          }
         };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            setItems(prev => [...prev, {
+              id,
+              src: event.target?.result as string,
+              width: img.width,
+              height: img.height,
+              scale: 100,
+              rotation: 0,
+              x: 50,
+              y: 50,
+              fitMode: 'contain',
+              pageIndex: targetPage
+            }]);
+            setSelectedId(id);
+          };
+          img.src = event.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+      }
+      });
     }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const upscaleImage = async () => {
-    if (!image) return;
+    if (!selectedItem) return;
 
     // Safe check for AI Studio environment
     try {
@@ -98,7 +176,7 @@ const PrintMasterPro: React.FC = () => {
     try {
       const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY || (import.meta as any).env?.VITE_API_KEY || localStorage.getItem('anix_api_key') || "";
       const ai = new GoogleGenAI({ apiKey });
-      const base64 = image.includes(',') ? image.split(',')[1] : image;
+      const base64 = selectedItem.src.includes(',') ? selectedItem.src.split(',')[1] : selectedItem.src;
       
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-image-preview',
@@ -117,9 +195,10 @@ const PrintMasterPro: React.FC = () => {
         for (const part of response.candidates[0].content.parts) {
           if (part.inlineData) {
             const upscaled = `data:image/png;base64,${part.inlineData.data}`;
-            setImage(upscaled);
             const img = new Image();
-            img.onload = () => setDimensions({ width: img.width, height: img.height });
+            img.onload = () => {
+              updateSelectedItem({ src: upscaled, width: img.width, height: img.height });
+            };
             img.src = upscaled;
           }
         }
@@ -138,23 +217,31 @@ const PrintMasterPro: React.FC = () => {
   };
 
   const removeBg = async () => {
-    if (!image) return;
+    if (!selectedItem) return;
     setIsProcessing(true);
-    const result = await removeBackgroundAI(image.split(',')[1]);
+    const result = await removeBackgroundAI(selectedItem.src.split(',')[1]);
     if (result) {
-      setImage(result);
       const img = new Image();
-      img.onload = () => setDimensions({ width: img.width, height: img.height });
+      img.onload = () => {
+        updateSelectedItem({ src: result, width: img.width, height: img.height });
+      };
       img.src = result;
     }
     setIsProcessing(false);
+  };
+
+  const deleteSelected = () => {
+    if (!selectedId) return;
+    setItems(prev => prev.filter(i => i.id !== selectedId));
+    setSelectedId(null);
   };
 
   const handlePrint = () => { window.focus(); window.print(); };
   const getDpiColor = () => dpi >= 300 ? 'text-emerald-500' : dpi >= 150 ? 'text-amber-500' : 'text-rose-500';
 
   const saveAsPNG = () => {
-    if (!image) return;
+    const pageItems = items.filter(i => i.pageIndex === currentPage);
+    if (pageItems.length === 0) return;
     
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -175,26 +262,39 @@ const PrintMasterPro: React.FC = () => {
     ctx.rect(0, 0, widthPx, heightPx);
     ctx.clip();
 
-    const img = new Image();
-    img.onload = () => {
-      const paperRatio = paperSize.w / paperSize.h;
-      const imgRatio = img.width / img.height;
-      let baseW, baseH;
+    // Load all images first
+    const loadPromises = pageItems.map(item => new Promise<{ img: HTMLImageElement, item: PrintItem }>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ img, item });
+      img.src = item.src;
+    }));
 
-      if (fitMode === 'cover') {
-        if (imgRatio > paperRatio) { baseH = paperSize.h; baseW = baseH * imgRatio; } 
-        else { baseW = paperSize.w; baseH = baseW / imgRatio; }
-      } else {
-        if (imgRatio > paperRatio) { baseW = paperSize.w; baseH = baseW / imgRatio; } 
-        else { baseH = paperSize.h; baseW = baseH * imgRatio; }
-      }
+    Promise.all(loadPromises).then(loadedItems => {
+      loadedItems.forEach(({ img, item }) => {
+        const paperRatio = paperSize.w / paperSize.h;
+        const imgRatio = img.width / img.height;
+        let baseW, baseH;
 
-      const finalW = baseW * (scale / 100) * dpiScale;
-      const finalH = baseH * (scale / 100) * dpiScale;
-      const centerX = (paperSize.w * (position.x / 100)) * dpiScale;
-      const centerY = (paperSize.h * (position.y / 100)) * dpiScale;
+        if (item.fitMode === 'cover') {
+          if (imgRatio > paperRatio) { baseH = paperSize.h; baseW = baseH * imgRatio; } 
+          else { baseW = paperSize.w; baseH = baseW / imgRatio; }
+        } else {
+          if (imgRatio > paperRatio) { baseW = paperSize.w; baseH = baseW / imgRatio; } 
+          else { baseH = paperSize.h; baseW = baseH * imgRatio; }
+        }
 
-      ctx.drawImage(img, centerX - (finalW / 2), centerY - (finalH / 2), finalW, finalH);
+        const finalW = baseW * (item.scale / 100) * dpiScale;
+        const finalH = baseH * (item.scale / 100) * dpiScale;
+        const centerX = (paperSize.w * (item.x / 100)) * dpiScale;
+        const centerY = (paperSize.h * (item.y / 100)) * dpiScale;
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate((item.rotation * Math.PI) / 180);
+        ctx.drawImage(img, -(finalW / 2), -(finalH / 2), finalW, finalH);
+        ctx.restore();
+      });
+
       ctx.restore();
 
       if (hasBorder) {
@@ -204,12 +304,12 @@ const PrintMasterPro: React.FC = () => {
       }
 
       const link = document.createElement('a'); link.download = `printmaster-${paperSize.name}.png`; link.href = canvas.toDataURL('image/png'); link.click();
-    };
-    img.src = image;
+    });
   };
 
   const handleViewRealSize = () => {
-    if (!image) return;
+    const pageItems = items.filter(i => i.pageIndex === currentPage);
+    if (pageItems.length === 0) return;
     setIsProcessing(true);
 
     // Timeout para permitir que a UI mostre o estado de carregamento antes do processamento pesado
@@ -233,26 +333,38 @@ const PrintMasterPro: React.FC = () => {
       ctx.rect(0, 0, widthPx, heightPx);
       ctx.clip();
 
-      const img = new Image();
-      img.onload = () => {
-        const paperRatio = paperSize.w / paperSize.h;
-        const imgRatio = img.width / img.height;
-        let baseW, baseH;
+      const loadPromises = pageItems.map(item => new Promise<{ img: HTMLImageElement, item: PrintItem }>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ img, item });
+        img.src = item.src;
+      }));
 
-        if (fitMode === 'cover') {
-          if (imgRatio > paperRatio) { baseH = paperSize.h; baseW = baseH * imgRatio; } 
-          else { baseW = paperSize.w; baseH = baseW / imgRatio; }
-        } else {
-          if (imgRatio > paperRatio) { baseW = paperSize.w; baseH = baseW / imgRatio; } 
-          else { baseH = paperSize.h; baseW = baseH * imgRatio; }
-        }
+      Promise.all(loadPromises).then(loadedItems => {
+        loadedItems.forEach(({ img, item }) => {
+          const paperRatio = paperSize.w / paperSize.h;
+          const imgRatio = img.width / img.height;
+          let baseW, baseH;
 
-        const finalW = baseW * (scale / 100) * dpiScale;
-        const finalH = baseH * (scale / 100) * dpiScale;
-        const centerX = (paperSize.w * (position.x / 100)) * dpiScale;
-        const centerY = (paperSize.h * (position.y / 100)) * dpiScale;
+          if (item.fitMode === 'cover') {
+            if (imgRatio > paperRatio) { baseH = paperSize.h; baseW = baseH * imgRatio; } 
+            else { baseW = paperSize.w; baseH = baseW / imgRatio; }
+          } else {
+            if (imgRatio > paperRatio) { baseW = paperSize.w; baseH = baseW / imgRatio; } 
+            else { baseH = paperSize.h; baseW = baseH * imgRatio; }
+          }
 
-        ctx.drawImage(img, centerX - (finalW / 2), centerY - (finalH / 2), finalW, finalH);
+          const finalW = baseW * (item.scale / 100) * dpiScale;
+          const finalH = baseH * (item.scale / 100) * dpiScale;
+          const centerX = (paperSize.w * (item.x / 100)) * dpiScale;
+          const centerY = (paperSize.h * (item.y / 100)) * dpiScale;
+
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate((item.rotation * Math.PI) / 180);
+          ctx.drawImage(img, -(finalW / 2), -(finalH / 2), finalW, finalH);
+          ctx.restore();
+        });
+
         ctx.restore();
 
         if (hasBorder) {
@@ -264,8 +376,7 @@ const PrintMasterPro: React.FC = () => {
         setPreviewUrl(canvas.toDataURL('image/jpeg', 0.8));
         setShowFullSize(true);
         setIsProcessing(false);
-      };
-      img.src = image;
+      });
     }, 100);
   };
 
@@ -274,8 +385,7 @@ const PrintMasterPro: React.FC = () => {
       <style>{`
         @media print {
           .print-canvas-area { position: fixed; left: 0; top: 0; width: ${paperSize.w}mm; height: ${paperSize.h}mm; background: white; overflow: hidden; display: block !important; z-index: 9999; box-sizing: border-box; border: ${hasBorder ? `${borderWidth}mm solid ${borderColor}` : 'none'}; }
-          .print-img-wrap { position: absolute; left: ${position.x}%; top: ${position.y}%; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); }
-          .print-img { transform: scale(${scale/100}); width: ${fitMode === 'cover' ? (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? 'auto' : '100%') : (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? '100%' : 'auto')}; height: ${fitMode === 'cover' ? (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? '100%' : 'auto') : (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? 'auto' : '100%')}; }
+          .print-img-wrap { position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; transform: translate(-50%, -50%); }
           @page { size: ${paperSize.w}mm ${paperSize.h}mm; margin: 0; }
         }
         .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.3); }
@@ -294,16 +404,34 @@ const PrintMasterPro: React.FC = () => {
 
           <div className="space-y-4">
             <button onClick={() => fileInputRef.current?.click()} className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3">
-              Importar Imagem
-              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+              Importar Arquivos
+              <input type="file" multiple ref={fileInputRef} className="hidden" accept=".jpg,.jpeg,.gif,.png,.svg,.psd,.webp,.raw,.tiff,.tif,.bmp,.pdf,image/*,application/pdf" onChange={handleFileUpload} />
             </button>
+            
+            {selectedItem ? (
+              <>
             <div className="grid grid-cols-2 gap-3">
               <button onClick={upscaleImage} disabled={isProcessing} className="bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest hover:bg-indigo-700 border border-indigo-100 shadow-lg">Super-Resolução IA</button>
               <button onClick={removeBg} disabled={isProcessing} className="bg-emerald-50 text-emerald-600 py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest hover:bg-emerald-100 border border-emerald-100">Remover Fundo</button>
             </div>
+              </>
+            ) : (
+              <div className="text-center text-[10px] text-slate-400 font-bold uppercase py-4">Selecione uma imagem para editar</div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
-                <button onClick={handlePrint} disabled={!image || isProcessing} className="bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-lg hover:bg-blue-700 disabled:opacity-50">Imprimir Colorido</button>
-                <button onClick={handlePrint} disabled={!image || isProcessing} className="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-lg hover:bg-black disabled:opacity-50">Imprimir P&B</button>
+                <button onClick={handlePrint} disabled={items.length === 0 || isProcessing} className="bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-lg hover:bg-blue-700 disabled:opacity-50">Imprimir ({pageCount})</button>
+                <button onClick={handlePrint} disabled={items.length === 0 || isProcessing} className="bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-lg hover:bg-black disabled:opacity-50">P&B</button>
+            </div>
+
+            <div className="flex items-center justify-between bg-slate-100 p-3 rounded-2xl">
+               <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0} className="p-2 hover:bg-white rounded-lg disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>
+               <div className="text-center">
+                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">Página</span>
+                 <span className="text-sm font-black text-slate-900">{currentPage + 1} / {pageCount}</span>
+               </div>
+               <button onClick={() => setCurrentPage(p => Math.min(pageCount - 1, p + 1))} disabled={currentPage === pageCount - 1} className="p-2 hover:bg-white rounded-lg disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
+               <button onClick={() => { setPageCount(p => p + 1); setCurrentPage(pageCount); }} className="ml-2 bg-indigo-100 text-indigo-600 p-2 rounded-lg hover:bg-indigo-200"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></button>
             </div>
           </div>
 
@@ -347,29 +475,44 @@ const PrintMasterPro: React.FC = () => {
                 )}
             </div>
 
+            {selectedItem && (
+              <>
             <div className="space-y-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Escala ({scale}%)</label>
-              <input type="range" min="10" max="500" value={scale} onChange={(e) => setScale(Number(e.target.value))} className="w-full accent-indigo-600" />
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Escala ({selectedItem.scale}%)</label>
+              <input type="range" min="10" max="500" value={selectedItem.scale} onChange={(e) => updateSelectedItem({ scale: Number(e.target.value) })} className="w-full accent-indigo-600" />
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Rotação ({selectedItem.rotation}°)</label>
+              <div className="flex gap-2">
+                {[0, 90, 180, 270].map(deg => (
+                  <button key={deg} onClick={() => updateSelectedItem({ rotation: deg })} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${selectedItem.rotation === deg ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200'}`}>{deg}°</button>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center block">Posição X</label>
-                <input type="range" min="0" max="100" value={position.x} onChange={(e) => setPosition(p => ({ ...p, x: Number(e.target.value) }))} className="w-full accent-slate-400" />
+                <input type="range" min="0" max="100" value={selectedItem.x} onChange={(e) => updateSelectedItem({ x: Number(e.target.value) })} className="w-full accent-slate-400" />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center block">Posição Y</label>
-                <input type="range" min="0" max="100" value={position.y} onChange={(e) => setPosition(p => ({ ...p, y: Number(e.target.value) }))} className="w-full accent-slate-400" />
+                <input type="range" min="0" max="100" value={selectedItem.y} onChange={(e) => updateSelectedItem({ y: Number(e.target.value) })} className="w-full accent-slate-400" />
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enquadramento</label>
               <div className="flex gap-2">
-                <button onClick={() => setFitMode('contain')} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${fitMode === 'contain' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200'}`}>Ajustar</button>
-                <button onClick={() => setFitMode('cover')} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${fitMode === 'cover' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200'}`}>Preencher</button>
+                <button onClick={() => updateSelectedItem({ fitMode: 'contain' })} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${selectedItem.fitMode === 'contain' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200'}`}>Ajustar</button>
+                <button onClick={() => updateSelectedItem({ fitMode: 'cover' })} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all border ${selectedItem.fitMode === 'cover' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200'}`}>Preencher</button>
               </div>
             </div>
+            
+            <button onClick={deleteSelected} className="w-full bg-rose-50 text-rose-600 py-3 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-rose-100 border border-rose-100 transition-all">Remover Item Selecionado</button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -387,7 +530,7 @@ const PrintMasterPro: React.FC = () => {
               <span className={`text-[11px] font-black uppercase ${getDpiColor()}`}>{dpi >= 300 ? '✅ Excelente' : dpi >= 150 ? '⚠️ Boa' : '❌ Baixa'}</span>
             </div>
           </div>
-          {image && (
+          {currentItems.length > 0 && (
             <div className="flex gap-3">
               <button onClick={handleViewRealSize} disabled={isProcessing} className="bg-white text-slate-600 px-4 py-2 rounded-xl font-black uppercase text-[9px] tracking-widest border border-slate-200 hover:bg-slate-50 hover:text-indigo-600 transition-all flex items-center gap-2 disabled:opacity-50">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg> Ver Real
@@ -413,32 +556,46 @@ const PrintMasterPro: React.FC = () => {
             className="shadow-[0_50px_100px_rgba(0,0,0,0.15)] relative overflow-visible transition-all duration-500"
           >
             <div className="absolute inset-0 overflow-hidden">
-              {image && (
+              {currentItems.map(item => (
                 <img 
-                  src={image} 
+                  key={item.id}
+                  src={item.src} 
+                  onClick={() => setSelectedId(item.id)}
                   style={{
-                    position: 'absolute', left: `${position.x}%`, top: `${position.y}%`,
-                    transform: `translate(-50%, -50%) scale(${scale/100})`,
-                    width: fitMode === 'cover' ? (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? 'auto' : '100%') : (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? '100%' : 'auto'),
-                    height: fitMode === 'cover' ? (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? '100%' : 'auto') : (dimensions.width/dimensions.height > paperSize.w/paperSize.h ? 'auto' : '100%'),
-                    objectFit: fitMode
+                    position: 'absolute', left: `${item.x}%`, top: `${item.y}%`,
+                    transform: `translate(-50%, -50%) scale(${item.scale/100}) rotate(${item.rotation}deg)`,
+                    width: item.fitMode === 'cover' ? (item.width/item.height > paperSize.w/paperSize.h ? 'auto' : '100%') : (item.width/item.height > paperSize.w/paperSize.h ? '100%' : 'auto'),
+                    height: item.fitMode === 'cover' ? (item.width/item.height > paperSize.w/paperSize.h ? '100%' : 'auto') : (item.width/item.height > paperSize.w/paperSize.h ? 'auto' : '100%'),
+                    objectFit: item.fitMode,
+                    border: selectedId === item.id ? '2px solid #4f46e5' : 'none',
+                    zIndex: selectedId === item.id ? 10 : 1,
+                    cursor: 'pointer'
                   }}
-                  className="transition-all duration-300 pointer-events-none"
+                  className="transition-all duration-300"
                 />
-              )}
+              ))}
             </div>
           </div>
         </div>
       </div>
 
       <div className="hidden print-canvas-area">
-        {image && (
-          <>
-            <div className="print-img-wrap">
-              <img src={image} className="print-img" />
-            </div>
-          </>
-        )}
+        {Array.from({ length: pageCount }).map((_, pIndex) => (
+          <div key={pIndex} className="print-page">
+            {items.filter(i => i.pageIndex === pIndex).map(item => (
+                <div key={item.id} className="print-img-wrap" style={{ left: `${item.x}%`, top: `${item.y}%` }}>
+                  <img 
+                    src={item.src} 
+                    style={{
+                        transform: `scale(${item.scale/100}) rotate(${item.rotation}deg)`,
+                        width: item.fitMode === 'cover' ? (item.width/item.height > paperSize.w/paperSize.h ? 'auto' : '100%') : (item.width/item.height > paperSize.w/paperSize.h ? '100%' : 'auto'),
+                        height: item.fitMode === 'cover' ? (item.width/item.height > paperSize.w/paperSize.h ? '100%' : 'auto') : (item.width/item.height > paperSize.w/paperSize.h ? 'auto' : '100%')
+                    }}
+                  />
+                </div>
+            ))}
+          </div>
+        ))}
       </div>
 
       {showFullSize && previewUrl && (

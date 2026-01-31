@@ -1,6 +1,10 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { removeBackgroundAI } from '../services/geminiService';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configura o worker para o pdf.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 interface PhotoItem {
   id: string;
@@ -89,24 +93,59 @@ const PhotoA4Generator: React.FC = () => {
     const files = e.target.files;
     if (files) {
       Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const id = Math.random().toString(36).substr(2, 9);
-          const src = event.target?.result as string;
-          if (src) {
-            setPhotos(prev => [...prev, {
-              id,
-              src,
-              zoom: 1.0,
-              rotation: 0,
-              posX: 0,
-              posY: 0,
-              widthMm: 80,
-              heightMm: 100
-            }]);
-          }
-        };
-        reader.readAsDataURL(file);
+        if (file.type === 'application/pdf') {
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            if (!event.target?.result) return;
+            const typedarray = new Uint8Array(event.target.result as ArrayBuffer);
+            try {
+              const pdf = await pdfjsLib.getDocument(typedarray).promise;
+              const page = await pdf.getPage(1);
+              const viewport = page.getViewport({ scale: 3.0 });
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d');
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+              if (context) {
+                await page.render({ canvasContext: context, viewport: viewport }).promise;
+                const src = canvas.toDataURL('image/jpeg');
+                const id = Math.random().toString(36).substr(2, 9);
+                setPhotos(prev => [...prev, {
+                  id,
+                  src,
+                  zoom: 1.0,
+                  rotation: 0,
+                  posX: 0,
+                  posY: 0,
+                  widthMm: 80,
+                  heightMm: 100
+                }]);
+              }
+            } catch (error) {
+              console.error('Erro PDF:', error);
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        } else {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const id = Math.random().toString(36).substr(2, 9);
+            const src = event.target?.result as string;
+            if (src) {
+              setPhotos(prev => [...prev, {
+                id,
+                src,
+                zoom: 1.0,
+                rotation: 0,
+                posX: 0,
+                posY: 0,
+                widthMm: 80,
+                heightMm: 100
+              }]);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
       });
     }
   };
@@ -277,6 +316,7 @@ const PhotoA4Generator: React.FC = () => {
       const moveY = (photo.posY * (dpiFactor / mmToPxPreview));
       const centerX = clipX + (clipW / 2); const centerY = clipY + (clipH / 2);
       ctx.translate(centerX + moveX, centerY + moveY);
+      ctx.rotate((photo.rotation * Math.PI) / 180);
       ctx.scale(finalScale, finalScale);
       ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore(); ctx.restore();
@@ -302,7 +342,7 @@ const PhotoA4Generator: React.FC = () => {
         className={`transition-all cursor-move select-none ${!isPrint && selectedIds.includes(photo.id) ? 'ring-4 ring-blue-500 ring-inset z-20 shadow-2xl scale-[1.02]' : ''}`}>
         <div className="w-full h-full relative" style={{ padding: isPolaroid ? `${width * POLAROID_TOP_MARGIN_RATIO}${unit} ${width * POLAROID_SIDE_MARGIN_RATIO}${unit} ${height * POLAROID_BOTTOM_MARGIN_RATIO}${unit} ${width * POLAROID_SIDE_MARGIN_RATIO}${unit}` : '0' }}>
           <div className="w-full h-full relative overflow-hidden bg-slate-50" style={{ border: isPolaroid ? `${0.4 * factor}${unit} solid #94a3b8` : 'none', boxSizing: 'border-box' }}>
-            <img src={photo.src} style={{ position: 'absolute', top: '50%', left: '50%', transform: `translate(-50%, -50%) translate(${photo.posX}px, ${photo.posY}px) scale(${photo.zoom})`, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} draggable={false} />
+            <img src={photo.src} style={{ position: 'absolute', top: '50%', left: '50%', transform: `translate(-50%, -50%) translate(${photo.posX}px, ${photo.posY}px) scale(${photo.zoom}) rotate(${photo.rotation}deg)`, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} draggable={false} />
           </div>
         </div>
       </div>
@@ -331,7 +371,7 @@ const PhotoA4Generator: React.FC = () => {
             <button onClick={() => fileInputRef.current?.click()} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
               Adicionar Fotos
-              <input type="file" multiple ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+              <input type="file" multiple ref={fileInputRef} className="hidden" accept=".jpg,.jpeg,.gif,.png,.svg,.psd,.webp,.raw,.tiff,.tif,.bmp,.pdf,image/*,application/pdf" onChange={handleFileUpload} />
             </button>
 
             <div className="grid grid-cols-2 gap-2">
@@ -360,7 +400,7 @@ const PhotoA4Generator: React.FC = () => {
                 </button>
               </div>
               <input 
-                type="range" min="0.1" max="5" step="0.01" 
+                type="range" min="0.1" max="10" step="0.01" 
                 value={firstSelected?.zoom || 1} 
                 onChange={(e) => updatePhotos({ zoom: Number(e.target.value) })} 
                 disabled={selectedIds.length === 0}
@@ -368,6 +408,25 @@ const PhotoA4Generator: React.FC = () => {
               />
               <div className="flex justify-between text-[8px] font-bold text-indigo-400 uppercase">
                 <span>{firstSelected?.zoom.toFixed(2)}x</span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-3xl space-y-3">
+              <label className="text-[9px] font-black text-indigo-600 uppercase tracking-widest block">Girar Foto</label>
+              <div className="flex gap-2">
+                {[0, 90, 180, 270].map((deg) => (
+                  <button
+                    key={deg}
+                    onClick={() => updatePhotos({ rotation: deg })}
+                    className={`flex-1 py-2 rounded-xl font-black text-[9px] transition-all border ${
+                      firstSelected?.rotation === deg
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-100'
+                    }`}
+                  >
+                    {deg}°
+                  </button>
+                ))}
               </div>
             </div>
 

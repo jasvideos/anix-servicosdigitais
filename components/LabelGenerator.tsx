@@ -1,6 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { removeBackgroundAI } from '../services/geminiService';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configura o worker para o pdf.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 const LabelGenerator: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
@@ -19,6 +23,7 @@ const LabelGenerator: React.FC = () => {
   
   const [isCropping, setIsCropping] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -34,13 +39,42 @@ const LabelGenerator: React.FC = () => {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setRawImage(reader.result as string);
-        setImage(reader.result as string);
-        setIsCropping(true);
-      };
-      reader.readAsDataURL(file);
+      if (file.type === 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          if (!event.target?.result) return;
+          const typedarray = new Uint8Array(event.target.result as ArrayBuffer);
+          try {
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 3.0 });
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            if (context) {
+              await page.render({ canvasContext: context, viewport: viewport }).promise;
+              const result = canvas.toDataURL('image/jpeg');
+              setRawImage(result);
+              setImage(result);
+              setRotation(0);
+              setIsCropping(true);
+            }
+          } catch (error) {
+            alert('Erro ao ler PDF');
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setRawImage(reader.result as string);
+          setImage(reader.result as string);
+          setRotation(0);
+          setIsCropping(true);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 
@@ -79,10 +113,14 @@ const LabelGenerator: React.FC = () => {
         
         const drawW = img.width * zoom * (containerW / img.width) * ratio;
         const drawH = img.height * zoom * (containerW / img.width) * ratio;
-        const drawX = position.x * ratio;
-        const drawY = position.y * ratio;
         
-        ctx.drawImage(img, drawX, drawY, drawW, drawH);
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.translate(position.x * ratio, position.y * ratio);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.restore();
+        
         setImage(canvas.toDataURL('image/png'));
         setIsCropping(false);
       }
@@ -253,14 +291,19 @@ const LabelGenerator: React.FC = () => {
                 <>
                   <div className="flex-1 bg-slate-800 flex items-center justify-center relative overflow-hidden">
                     <div className={`bg-white overflow-hidden relative border-2 border-indigo-500 shadow-2xl cursor-move ${shape === 'circle' ? 'rounded-full' : ''}`} style={{ width: '250px', height: `${250 * (heightMm / widthMm)}px` }} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp}>
-                      <img src={rawImage} draggable={false} style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transformOrigin: '0 0', maxWidth: 'none', width: '100%' }} className="pointer-events-none" />
+                      <img src={rawImage} draggable={false} style={{ position: 'absolute', top: '50%', left: '50%', transform: `translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${zoom}) rotate(${rotation}deg)`, transformOrigin: 'center center', maxWidth: 'none', width: '100%' }} className="pointer-events-none" />
                     </div>
                   </div>
                   <div className="p-4 bg-slate-900 border-t border-white/5 z-20 shrink-0">
+                    <div className="flex gap-2 mb-2">
+                       <span className="text-[10px] font-black text-white uppercase tracking-widest self-center">Zoom:</span>
+                       <input type="range" min="0.1" max="5" step="0.01" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1 accent-indigo-500" />
+                    </div>
                     <div className="flex gap-2 mb-4">
-                      <input type="number" step="0.01" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1 bg-slate-800 text-white rounded px-2 py-2 text-[10px] font-bold border border-slate-700" placeholder="Zoom" />
-                      <input type="number" value={position.x} onChange={(e) => setPosition(p => ({ ...p, x: Number(e.target.value) }))} className="flex-1 bg-slate-800 text-white rounded px-2 py-2 text-[10px] font-bold border border-slate-700" placeholder="X" />
-                      <input type="number" value={position.y} onChange={(e) => setPosition(p => ({ ...p, y: Number(e.target.value) }))} className="flex-1 bg-slate-800 text-white rounded px-2 py-2 text-[10px] font-bold border border-slate-700" placeholder="Y" />
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest self-center">Girar:</span>
+                      {[0, 90, 180, 270].map(deg => (
+                        <button key={deg} onClick={() => setRotation(deg)} className={`flex-1 py-1 rounded text-[10px] font-bold border transition-all ${rotation === deg ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-800 text-slate-400 border-slate-700'}`}>{deg}°</button>
+                      ))}
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => setIsCropping(false)} className="flex-1 bg-slate-800 text-white text-[9px] py-3 rounded-xl font-black uppercase tracking-widest">Cancelar</button>
@@ -277,7 +320,7 @@ const LabelGenerator: React.FC = () => {
                 <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-slate-800/50 transition-all bg-slate-900 group">
                   <div className="bg-indigo-600 p-5 rounded-2xl shadow-xl mb-4 group-hover:scale-105 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2 2z" /></svg></div>
                   <p className="text-white text-[10px] font-black uppercase tracking-widest">Carregar Arte</p>
-                  <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+                  <input type="file" className="hidden" accept=".jpg,.jpeg,.gif,.png,.svg,.psd,.webp,.raw,.tiff,.tif,.bmp,.pdf,image/*,application/pdf" onChange={handleFileUpload} />
                 </label>
               )}
             </div>
@@ -401,9 +444,7 @@ const LabelGenerator: React.FC = () => {
               className="relative bg-white shadow-2xl p-0 transition-all duration-500" 
               style={{ 
                 width: `${pageW}mm`, 
-                minHeight: `${pageH}mm`,
-                transform: 'scale(0.8)',
-                transformOrigin: 'top center'
+                height: `${pageH}mm`,
               }}
             >
               <div 

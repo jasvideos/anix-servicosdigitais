@@ -1,6 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { generateSignImage } from '../services/geminiService';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configura o worker para o pdf.js para renderização em segundo plano
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 type BankTemplate = 'NUBANK' | 'ITAU' | 'BB' | 'PIX_STANDARD' | 'SANTANDER' | 'CAIXA' | 'MERCADO_PAGO' | 'BRADESCO' | 'PICPAY';
 
@@ -28,7 +32,10 @@ const QRCodePlateGenerator: React.FC = () => {
   };
 
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrRotation, setQrRotation] = useState(0);
+  const [qrScale, setQrScale] = useState(1);
   const [bgImage, setBgImage] = useState<string | null>(null);
+  const [bgRotation, setBgRotation] = useState(0);
   const [pixKey, setPixKey] = useState('');
   const [template, setTemplate] = useState<BankTemplate>('PIX_STANDARD');
   const [bgColor, setBgColor] = useState(templates['PIX_STANDARD'].colorHex);
@@ -50,9 +57,42 @@ const QRCodePlateGenerator: React.FC = () => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    // Se for um PDF, renderiza a primeira página para uma imagem
+    if (file.type === 'application/pdf') {
       const reader = new FileReader();
-      reader.onloadend = () => setQrCode(reader.result as string);
+      reader.onload = async (event) => {
+        if (!event.target?.result) return;
+        const typedarray = new Uint8Array(event.target.result as ArrayBuffer);
+        try {
+          const pdf = await pdfjsLib.getDocument(typedarray).promise;
+          const page = await pdf.getPage(1); // Pega a primeira página
+          const viewport = page.getViewport({ scale: 3.0 }); // Escala alta para boa qualidade
+          
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          if (context) {
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            setQrCode(canvas.toDataURL('image/png'));
+            setQrRotation(0);
+          }
+        } catch (error) {
+          console.error('Erro ao processar PDF:', error);
+          alert('Não foi possível ler o arquivo PDF. Tente novamente com uma imagem.');
+        }
+      };
+      reader.readAsArrayBuffer(file); // Lê como ArrayBuffer para o pdf.js
+    } else {
+      // Lógica original para arquivos de imagem
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setQrCode(reader.result as string);
+        setQrRotation(0);
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -61,7 +101,10 @@ const QRCodePlateGenerator: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setBgImage(reader.result as string);
+      reader.onloadend = () => {
+        setBgImage(reader.result as string);
+        setBgRotation(0);
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -167,9 +210,9 @@ const QRCodePlateGenerator: React.FC = () => {
       if (qrCode) {
         const qrImg = new Image();
         qrImg.onload = () => {
-          const qrSize = 650;
+          const qrSize = 650 * qrScale;
           const x = (canvas.width - qrSize) / 2;
-          const y = 550;
+          const y = 875 - (qrSize / 2); // Mantém o centro vertical (550 + 650/2 = 875)
           ctx.fillStyle = '#FFFFFF';
           ctx.shadowBlur = 40;
           ctx.shadowColor = 'rgba(0,0,0,0.2)';
@@ -177,7 +220,12 @@ const QRCodePlateGenerator: React.FC = () => {
           ctx.rect(x - 35, y - 35, qrSize + 70, qrSize + 70);
           ctx.fill();
           ctx.shadowBlur = 0;
-          ctx.drawImage(qrImg, x, y, qrSize, qrSize);
+          
+          ctx.save();
+          ctx.translate(x + qrSize / 2, y + qrSize / 2);
+          ctx.rotate((qrRotation * Math.PI) / 180);
+          ctx.drawImage(qrImg, -qrSize / 2, -qrSize / 2, qrSize, qrSize);
+          ctx.restore();
 
           if (pixKey.trim()) {
             const keyLines = pixKey.split('\n');
@@ -227,21 +275,35 @@ const QRCodePlateGenerator: React.FC = () => {
       const bgImg = new Image();
       bgImg.crossOrigin = "anonymous";
       bgImg.onload = () => {
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((bgRotation * Math.PI) / 180);
+        
         const canvasRatio = canvas.width / canvas.height;
         const imgRatio = bgImg.width / bgImg.height;
-        let drawWidth, drawHeight, offsetX, offsetY;
-        if (imgRatio > canvasRatio) {
-          drawHeight = canvas.height;
-          drawWidth = bgImg.width * (canvas.height / bgImg.height);
-          offsetX = (canvas.width - drawWidth) / 2;
-          offsetY = 0;
-        } else {
-          drawWidth = canvas.width;
-          drawHeight = bgImg.height * (canvas.width / bgImg.width);
-          offsetX = 0;
-          offsetY = (canvas.height - drawHeight) / 2;
+        let finalDrawW, finalDrawH;
+        
+        let effectiveRatio = imgRatio;
+        if (bgRotation === 90 || bgRotation === 270) {
+            effectiveRatio = 1 / imgRatio;
         }
-        ctx.drawImage(bgImg, offsetX, offsetY, drawWidth, drawHeight);
+
+        if (effectiveRatio > canvasRatio) {
+            finalDrawH = canvas.height;
+            finalDrawW = finalDrawH * effectiveRatio;
+        } else {
+            finalDrawW = canvas.width;
+            finalDrawH = finalDrawW / effectiveRatio;
+        }
+        
+        // Se rotacionado 90/270, desenhamos com as dimensões originais mas trocadas na lógica de escala
+        if (bgRotation === 90 || bgRotation === 270) {
+            ctx.drawImage(bgImg, -finalDrawH / 2, -finalDrawW / 2, finalDrawH, finalDrawW);
+        } else {
+            ctx.drawImage(bgImg, -finalDrawW / 2, -finalDrawH / 2, finalDrawW, finalDrawH);
+        }
+        
+        ctx.restore();
         runRender();
       };
       bgImg.src = bgImage;
@@ -288,8 +350,25 @@ const QRCodePlateGenerator: React.FC = () => {
                 </svg>
                 <span className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Anexar QR Code (Obrigatório)</span>
               </div>
-              <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+              <input type="file" className="hidden" accept=".jpg,.jpeg,.gif,.png,.svg,.psd,.webp,.raw,.tiff,.tif,.bmp,.pdf,image/*,application/pdf" onChange={handleFileUpload} />
             </label>
+            {qrCode && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Girar QR:</span>
+                  <div className="flex gap-1 flex-1">
+                    {[0, 90, 180, 270].map(deg => (
+                      <button key={deg} onClick={() => setQrRotation(deg)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-black border transition-all ${qrRotation === deg ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{deg}°</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Zoom QR:</span>
+                   <input type="range" min="0.5" max="1.5" step="0.05" value={qrScale} onChange={(e) => setQrScale(Number(e.target.value))} className="flex-1 accent-indigo-600 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
+                   <span className="text-[9px] font-bold text-slate-500 w-8 text-right">{Math.round(qrScale * 100)}%</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -349,7 +428,7 @@ const QRCodePlateGenerator: React.FC = () => {
                <div className="flex gap-2">
                  <label className="flex-1 bg-white border border-slate-200 hover:border-indigo-400 text-slate-500 hover:text-indigo-600 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest text-center cursor-pointer transition-all">
                     Upload de Imagem
-                    <input type="file" className="hidden" accept="image/*" onChange={handleBgUpload} />
+                    <input type="file" className="hidden" accept=".jpg,.jpeg,.gif,.png,.svg,.psd,.webp,.raw,.tiff,.tif,.bmp,.pdf,image/*,application/pdf" onChange={handleBgUpload} />
                  </label>
                  {bgImage && (
                    <button onClick={() => { setBgImage(null); setBgSearchQuery(''); }} className="px-4 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-colors font-black text-[9px] uppercase tracking-widest">
@@ -357,6 +436,16 @@ const QRCodePlateGenerator: React.FC = () => {
                    </button>
                  )}
                </div>
+               {bgImage && (
+                  <div className="flex items-center gap-2 pt-1 border-t border-slate-200 mt-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Girar Fundo:</span>
+                    <div className="flex gap-1 flex-1">
+                      {[0, 90, 180, 270].map(deg => (
+                        <button key={deg} onClick={() => setBgRotation(deg)} className={`flex-1 py-1.5 rounded-lg text-[9px] font-black border transition-all ${bgRotation === deg ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>{deg}°</button>
+                      ))}
+                    </div>
+                  </div>
+               )}
             </div>
           </div>
 
@@ -368,9 +457,12 @@ const QRCodePlateGenerator: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        <div className="flex flex-col no-print">
-          <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Preview 10x15</h2>
-          <p className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest">Toque para baixar o arquivo pronto</p>
+        <div className="flex justify-between items-center no-print">
+          <div className="flex flex-col">
+            <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Preview 10x15</h2>
+            <p className="text-[9px] text-indigo-500 font-bold uppercase tracking-widest">Toque para baixar o arquivo pronto</p>
+          </div>
+          <button onClick={saveAsPNG} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg hover:bg-indigo-700 transition-all">Baixar PNG</button>
         </div>
         <div className="flex justify-center items-start">
           <div 
@@ -378,14 +470,27 @@ const QRCodePlateGenerator: React.FC = () => {
             onClick={saveAsPNG}
             title="Clique para salvar como PNG"
             style={{
-              backgroundImage: bgImage ? `url(${bgImage})` : 'none',
               backgroundColor: (bgImage || template === 'PIX_STANDARD') ? 'transparent' : bgColor,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
               boxSizing: 'border-box'
             }}
             className={`w-[100mm] h-[150mm] rounded-none shadow-2xl flex flex-col items-center px-8 py-10 relative overflow-hidden cursor-pointer active:scale-[0.99] transition-all duration-500 ${template === 'PIX_STANDARD' && !bgImage ? 'bg-transparent' : ''}`}
           >
+            {/* Background Image with Rotation */}
+            {bgImage && (
+              <div 
+                style={{
+                  backgroundImage: `url(${bgImage})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  transform: `scale(1.5) rotate(${bgRotation}deg)`,
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 0
+                }}
+                className="transition-transform duration-500"
+              />
+            )}
+
             {/* Background Especial para PIX_STANDARD */}
             {template === 'PIX_STANDARD' && !bgImage && (
                 <div 
@@ -453,9 +558,12 @@ const QRCodePlateGenerator: React.FC = () => {
                 <h1 className={`text-xl font-black ${bgColor.toLowerCase() === '#fcfc30' && !bgImage ? 'text-[#003399]' : 'text-white'} uppercase mb-8 tracking-[0.2em] text-center drop-shadow-sm`}>PAGUE VIA PIX</h1>
               )}
               
-              <div className={`bg-white p-6 shadow-xl w-64 h-64 flex items-center justify-center overflow-hidden border-2 border-white/50 ${template === 'PIX_STANDARD' ? 'rounded-none mt-4' : 'rounded-xl'}`}>
+              <div 
+                style={{ width: `${16 * qrScale}rem`, height: `${16 * qrScale}rem` }}
+                className={`bg-white p-6 shadow-xl flex items-center justify-center overflow-hidden border-2 border-white/50 transition-all duration-300 ${template === 'PIX_STANDARD' ? 'rounded-none mt-4' : 'rounded-xl'}`}
+              >
                 {qrCode ? (
-                  <img src={qrCode} className="w-full h-full object-contain" alt="QR" />
+                  <img src={qrCode} style={{ transform: `rotate(${qrRotation}deg)` }} className="w-full h-full object-contain transition-transform duration-300" alt="QR" />
                 ) : (
                   <div className="text-slate-200 text-[9px] font-black uppercase opacity-20 text-center px-4">Anexe o QR Code para visualizar</div>
                 )}
