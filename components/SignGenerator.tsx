@@ -17,6 +17,44 @@ const SimpleColorSelector: React.FC<ColorSelectorProps> = ({ label, value, onCha
   </div>
 );
 
+// Componente de controle numérico com botões de setas
+interface NumericControlProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  unit?: string;
+}
+
+const NumericControl: React.FC<NumericControlProps> = ({ label, value, onChange, min, max, step = 1, unit }) => {
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? step : -step;
+    const newValue = Math.min(max, Math.max(min, value + delta));
+    onChange(newValue);
+  };
+
+  return (
+    <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-2 py-1">
+      <span className="text-[7px] font-black uppercase text-slate-500">{label}</span>
+      <div className="flex items-center gap-1" onWheel={handleWheel}>
+        <button
+          onClick={() => onChange(Math.max(min, value - step))}
+          className="w-5 h-5 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded text-slate-600 font-bold text-xs"
+        >−</button>
+        <span className="w-8 text-center text-[10px] font-black text-indigo-600">{value}</span>
+        <button
+          onClick={() => onChange(Math.min(max, value + step))}
+          className="w-5 h-5 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded text-slate-600 font-bold text-xs"
+        >+</button>
+        {unit && <span className="text-[7px] font-black text-slate-400 ml-0.5">{unit}</span>}
+      </div>
+    </div>
+  );
+};
+
 // Helper para desenhar retângulo com cantos arredondados
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   if (w < 2 * r) r = w / 2;
@@ -81,6 +119,23 @@ const SignGenerator: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [printImageSrc, setPrintImageSrc] = useState<string | null>(null);
 
+  // Estados para redimensionamento e movimentação interativa
+  const [hoveredElement, setHoveredElement] = useState<'title' | 'subtitle' | null>(null);
+  const [interactionMode, setInteractionMode] = useState<'none' | 'resize-h' | 'resize-v' | 'drag'>('none');
+  const [activeElement, setActiveElement] = useState<'title' | 'subtitle' | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number; offsetX: number; offsetY: number; size: number } | null>(null);
+  
+  // Offsets de posição para movimentação livre
+  const [titleOffsetX, setTitleOffsetX] = useState(0);
+  const [titleOffsetY, setTitleOffsetY] = useState(0);
+  const [subtitleOffsetX, setSubtitleOffsetX] = useState(0);
+  const [subtitleOffsetY, setSubtitleOffsetY] = useState(0);
+  
+  const textAreasRef = useRef<{ title: { x: number; y: number; w: number; h: number }; subtitle: { x: number; y: number; w: number; h: number } }>({
+    title: { x: 0, y: 0, w: 0, h: 0 },
+    subtitle: { x: 0, y: 0, w: 0, h: 0 }
+  });
+
   const FONT_FAMILIES = ['Inter', 'Arial', 'Verdana', 'Times New Roman', 'Courier New', 'Roboto', 'Montserrat', 'Oswald', 'Lato', 'Raleway'];
 
   interface FontSelectorProps {
@@ -126,6 +181,143 @@ const SignGenerator: React.FC = () => {
     link.click();
   };
 
+  // Helper para pegar posição do mouse no canvas
+  const getMousePos = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  };
+
+  // Verificar se mouse está sobre handle de resize horizontal (direita)
+  const isOverHHandle = (pos: { x: number; y: number }, area: { x: number; y: number; w: number; h: number }) => {
+    const handleX = area.x + area.w - 8;
+    const handleY = area.y + area.h / 2 - 8;
+    return pos.x >= handleX && pos.x <= handleX + 16 && pos.y >= handleY && pos.y <= handleY + 16;
+  };
+
+  // Verificar se mouse está sobre handle de resize vertical (baixo)
+  const isOverVHandle = (pos: { x: number; y: number }, area: { x: number; y: number; w: number; h: number }) => {
+    const handleX = area.x + area.w / 2 - 8;
+    const handleY = area.y + area.h - 8;
+    return pos.x >= handleX && pos.x <= handleX + 16 && pos.y >= handleY && pos.y <= handleY + 16;
+  };
+
+  // Verificar se mouse está sobre área do elemento
+  const isOverArea = (pos: { x: number; y: number }, area: { x: number; y: number; w: number; h: number }) => {
+    return pos.x >= area.x && pos.x <= area.x + area.w && pos.y >= area.y && pos.y <= area.y + area.h;
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const pos = getMousePos(e);
+    const canvas = canvasRef.current;
+    
+    // Durante interação ativa
+    if (activeElement && dragStart && canvas) {
+      const deltaX = pos.x - dragStart.x;
+      const deltaY = pos.y - dragStart.y;
+      
+      if (interactionMode === 'resize-h') {
+        // Resize horizontal
+        const sensitivity = 0.05;
+        const newSize = Math.max(1, Math.min(50, dragStart.size + deltaX * sensitivity));
+        if (activeElement === 'title') setTitleFontSize(Math.round(newSize));
+        else setSubtitleFontSize(Math.round(newSize));
+      } else if (interactionMode === 'resize-v') {
+        // Resize vertical
+        const sensitivity = 0.05;
+        const newSize = Math.max(1, Math.min(50, dragStart.size + deltaY * sensitivity));
+        if (activeElement === 'title') setTitleFontSize(Math.round(newSize));
+        else setSubtitleFontSize(Math.round(newSize));
+      } else if (interactionMode === 'drag') {
+        // Movimentação livre
+        if (activeElement === 'title') {
+          setTitleOffsetX(dragStart.offsetX + deltaX);
+          setTitleOffsetY(dragStart.offsetY + deltaY);
+        } else {
+          setSubtitleOffsetX(dragStart.offsetX + deltaX);
+          setSubtitleOffsetY(dragStart.offsetY + deltaY);
+        }
+      }
+      return;
+    }
+
+    // Detectar hover
+    const titleArea = textAreasRef.current.title;
+    const subtitleArea = textAreasRef.current.subtitle;
+    
+    if (isOverArea(pos, titleArea)) {
+      setHoveredElement('title');
+      if (canvas) {
+        if (isOverHHandle(pos, titleArea)) canvas.style.cursor = 'ew-resize';
+        else if (isOverVHandle(pos, titleArea)) canvas.style.cursor = 'ns-resize';
+        else canvas.style.cursor = 'move';
+      }
+    } else if (isOverArea(pos, subtitleArea)) {
+      setHoveredElement('subtitle');
+      if (canvas) {
+        if (isOverHHandle(pos, subtitleArea)) canvas.style.cursor = 'ew-resize';
+        else if (isOverVHandle(pos, subtitleArea)) canvas.style.cursor = 'ns-resize';
+        else canvas.style.cursor = 'move';
+      }
+    } else {
+      setHoveredElement(null);
+      if (canvas) canvas.style.cursor = 'default';
+    }
+  };
+
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const pos = getMousePos(e);
+    const titleArea = textAreasRef.current.title;
+    const subtitleArea = textAreasRef.current.subtitle;
+    
+    // Title interactions
+    if (isOverHHandle(pos, titleArea)) {
+      setActiveElement('title');
+      setInteractionMode('resize-h');
+      setDragStart({ x: pos.x, y: pos.y, offsetX: titleOffsetX, offsetY: titleOffsetY, size: titleFontSize });
+    } else if (isOverVHandle(pos, titleArea)) {
+      setActiveElement('title');
+      setInteractionMode('resize-v');
+      setDragStart({ x: pos.x, y: pos.y, offsetX: titleOffsetX, offsetY: titleOffsetY, size: titleFontSize });
+    } else if (isOverArea(pos, titleArea)) {
+      setActiveElement('title');
+      setInteractionMode('drag');
+      setDragStart({ x: pos.x, y: pos.y, offsetX: titleOffsetX, offsetY: titleOffsetY, size: titleFontSize });
+    }
+    // Subtitle interactions
+    else if (isOverHHandle(pos, subtitleArea)) {
+      setActiveElement('subtitle');
+      setInteractionMode('resize-h');
+      setDragStart({ x: pos.x, y: pos.y, offsetX: subtitleOffsetX, offsetY: subtitleOffsetY, size: subtitleFontSize });
+    } else if (isOverVHandle(pos, subtitleArea)) {
+      setActiveElement('subtitle');
+      setInteractionMode('resize-v');
+      setDragStart({ x: pos.x, y: pos.y, offsetX: subtitleOffsetX, offsetY: subtitleOffsetY, size: subtitleFontSize });
+    } else if (isOverArea(pos, subtitleArea)) {
+      setActiveElement('subtitle');
+      setInteractionMode('drag');
+      setDragStart({ x: pos.x, y: pos.y, offsetX: subtitleOffsetX, offsetY: subtitleOffsetY, size: subtitleFontSize });
+    }
+  };
+
+  const handleCanvasMouseUp = () => {
+    setActiveElement(null);
+    setInteractionMode('none');
+    setDragStart(null);
+  };
+
+  const handleCanvasMouseLeave = () => {
+    if (!activeElement) {
+      setHoveredElement(null);
+    }
+  };
+
   // Função de renderização do canvas
   const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -168,11 +360,54 @@ const SignGenerator: React.FC = () => {
       
       const titleLines = wrapText(ctx, title.toUpperCase(), headerBoxW * 0.9);
       const lineHeight = titleFontSize * scaleFactor * 1.2;
-      const titleStartY = dist35 + (headerBoxH / 2) - ((titleLines.length - 1) * lineHeight / 2);
+      const baseTitleStartY = dist35 + (headerBoxH / 2) - ((titleLines.length - 1) * lineHeight / 2);
+      
+      // Aplicar offsets
+      const titleCenterX = (width / 2) + titleOffsetX;
+      const titleStartY = baseTitleStartY + titleOffsetY;
+      
+      // Calcular área do título
+      let maxLineWidth = 0;
+      titleLines.forEach((line) => {
+        const lw = ctx.measureText(line).width;
+        if (lw > maxLineWidth) maxLineWidth = lw;
+      });
+      const titleH = titleLines.length * lineHeight;
+      textAreasRef.current.title = {
+        x: titleCenterX - (maxLineWidth / 2) - 10,
+        y: titleStartY - lineHeight / 2 - 5,
+        w: maxLineWidth + 20,
+        h: titleH + 10
+      };
       
       titleLines.forEach((line, i) => {
-        ctx.fillText(line, width / 2, titleStartY + (i * lineHeight));
+        ctx.fillText(line, titleCenterX, titleStartY + (i * lineHeight));
       });
+      
+      // Desenhar handles se hover
+      if (hoveredElement === 'title' || activeElement === 'title') {
+        const ta = textAreasRef.current.title;
+        ctx.strokeStyle = '#4F46E5';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.strokeRect(ta.x, ta.y, ta.w, ta.h);
+        ctx.setLineDash([]);
+        
+        // Handle de resize horizontal (direita)
+        ctx.fillStyle = '#4F46E5';
+        ctx.fillRect(ta.x + ta.w - 8, ta.y + ta.h / 2 - 8, 16, 16);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('↔', ta.x + ta.w, ta.y + ta.h / 2);
+        
+        // Handle de resize vertical (baixo)
+        ctx.fillStyle = '#4F46E5';
+        ctx.fillRect(ta.x + ta.w / 2 - 8, ta.y + ta.h - 8, 16, 16);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('↕', ta.x + ta.w / 2, ta.y + ta.h);
+      }
     }
 
     // Função para desenhar logo WhatsApp vetorial
@@ -259,15 +494,57 @@ const SignGenerator: React.FC = () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
-      const subtitleX = width / 2;
       const subtitleMaxWidth = width * 0.85;
       const subtitleLines = wrapText(ctx, subtitle.toUpperCase(), subtitleMaxWidth);
       const lineHeight = subtitleFontSize * scaleFactor * 1.2;
-      const subtitleStartY = bodyCenterY - ((subtitleLines.length - 1) * lineHeight / 2);
+      const baseSubtitleStartY = bodyCenterY - ((subtitleLines.length - 1) * lineHeight / 2);
+      
+      // Aplicar offsets
+      const subtitleCenterX = (width / 2) + subtitleOffsetX;
+      const subtitleStartY = baseSubtitleStartY + subtitleOffsetY;
+      
+      // Calcular área do subtítulo
+      let maxLineWidth = 0;
+      subtitleLines.forEach((line) => {
+        const lw = ctx.measureText(line).width;
+        if (lw > maxLineWidth) maxLineWidth = lw;
+      });
+      const subtitleH = subtitleLines.length * lineHeight;
+      textAreasRef.current.subtitle = {
+        x: subtitleCenterX - (maxLineWidth / 2) - 10,
+        y: subtitleStartY - lineHeight / 2 - 5,
+        w: maxLineWidth + 20,
+        h: subtitleH + 10
+      };
       
       subtitleLines.forEach((line, i) => {
-        ctx.fillText(line, subtitleX, subtitleStartY + (i * lineHeight));
+        ctx.fillText(line, subtitleCenterX, subtitleStartY + (i * lineHeight));
       });
+      
+      // Desenhar handles se hover
+      if (hoveredElement === 'subtitle' || activeElement === 'subtitle') {
+        const sa = textAreasRef.current.subtitle;
+        ctx.strokeStyle = '#4F46E5';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.strokeRect(sa.x, sa.y, sa.w, sa.h);
+        ctx.setLineDash([]);
+        
+        // Handle de resize horizontal (direita)
+        ctx.fillStyle = '#4F46E5';
+        ctx.fillRect(sa.x + sa.w - 8, sa.y + sa.h / 2 - 8, 16, 16);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('↔', sa.x + sa.w, sa.y + sa.h / 2);
+        
+        // Handle de resize vertical (baixo)
+        ctx.fillStyle = '#4F46E5';
+        ctx.fillRect(sa.x + sa.w / 2 - 8, sa.y + sa.h - 8, 16, 16);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('↕', sa.x + sa.w / 2, sa.y + sa.h);
+      }
     }
 
   }, [
@@ -275,13 +552,28 @@ const SignGenerator: React.FC = () => {
     bodyTextColor, borderColor, borderWidth, title, subtitle, phone,
     contactIcon, headerHeight, footerHeight,
     titleFontSize, subtitleFontSize, phoneFontSize,
-    titleFont, subtitleFont, phoneFont
+    titleFont, subtitleFont, phoneFont,
+    hoveredElement, activeElement,
+    titleOffsetX, titleOffsetY, subtitleOffsetX, subtitleOffsetY
   ]);
 
   // Atualizar canvas quando qualquer prop mudar
   useEffect(() => {
     renderCanvas();
   }, [renderCanvas]);
+
+  // Listener global para mouse up (caso solte fora do canvas)
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (activeElement) {
+        setActiveElement(null);
+        setInteractionMode('none');
+        setDragStart(null);
+      }
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, [activeElement]);
 
   return (
     <div className="max-w-[1700px] mx-auto flex flex-col gap-6 animate-fade-in pb-20">
@@ -297,51 +589,9 @@ const SignGenerator: React.FC = () => {
         </div>
       </div>
 
-      {/* Layout Principal: Ajustes | Preview | Cores */}
+      {/* Layout Principal: Conteúdo | Preview | Ajustes */}
       <div className="flex gap-4 no-print">
-        {/* Coluna Esquerda: Ajustes de Tamanho */}
-        <div className="w-52 space-y-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 shrink-0">
-          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Ajustes</label>
-          <div className="space-y-1">
-            <div className="flex justify-between text-[7px] font-black uppercase text-slate-500"><span>Altura Header</span><span>{headerHeight}%</span></div>
-            <input type="range" min="10" max="60" value={headerHeight} onChange={(e) => setHeaderHeight(Number(e.target.value))} className="w-full accent-indigo-600 h-1.5" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-[7px] font-black uppercase text-slate-500"><span>Fonte Título</span><span>{titleFontSize}</span></div>
-            <input type="range" min="1" max="50" value={titleFontSize} onChange={(e) => setTitleFontSize(Number(e.target.value))} className="w-full accent-indigo-600 h-1.5" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-[7px] font-black uppercase text-slate-500"><span>Fonte Subtítulo</span><span>{subtitleFontSize}</span></div>
-            <input type="range" min="1" max="50" value={subtitleFontSize} onChange={(e) => setSubtitleFontSize(Number(e.target.value))} className="w-full accent-indigo-600 h-1.5" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-[7px] font-black uppercase text-slate-500"><span>Fonte Telefone</span><span>{phoneFontSize}</span></div>
-            <input type="range" min="1" max="50" value={phoneFontSize} onChange={(e) => setPhoneFontSize(Number(e.target.value))} className="w-full accent-indigo-600 h-1.5" />
-          </div>
-          {/* Contorno */}
-          <div className="pt-2 border-t border-slate-200 mt-2">
-            <label className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Contorno</label>
-            <div className="flex items-center gap-2 mt-1">
-              <input type="color" value={borderColor} onChange={(e) => setBorderColor(e.target.value)} className="w-5 h-5 p-0 border border-slate-200 rounded cursor-pointer" />
-              <input type="number" value={borderWidth} onChange={(e) => setBorderWidth(Number(e.target.value))} className="w-12 h-6 text-center text-[10px] font-black border border-slate-200 rounded" min="0" max="200" step="5" />
-              <span className="text-[7px] font-black text-slate-400">PX</span>
-            </div>
-          </div>
-          {/* Tamanho e Orientação */}
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 mt-2">
-            <button onClick={() => setSize(size === 'A4' ? 'A3' : 'A4')} className="bg-white border border-slate-200 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest hover:bg-slate-100">{size}</button>
-            <button onClick={() => setOrientation(orientation === 'portrait' ? 'landscape' : 'portrait')} className="bg-white border border-slate-200 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest hover:bg-slate-100">{orientation === 'portrait' ? 'Vert' : 'Horiz'}</button>
-          </div>
-        </div>
-
-        {/* Coluna Central: Preview */}
-        <div className="flex-1 flex flex-col items-center">
-          <div className="shadow-2xl border border-slate-200 rounded-2xl overflow-hidden bg-white">
-            <canvas ref={canvasRef} />
-          </div>
-        </div>
-
-        {/* Coluna Direita: Conteúdo e Cores */}
+        {/* Coluna Esquerda: Conteúdo */}
         <div className="w-64 space-y-3 shrink-0">
           {/* Conteúdo */}
           <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-2">
@@ -359,18 +609,65 @@ const SignGenerator: React.FC = () => {
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" className="w-full border border-slate-200 bg-white rounded-lg px-3 py-1.5 outline-none font-black text-[10px] text-indigo-600" />
             <FontSelector label="Fonte Telefone" value={phoneFont} onChange={setPhoneFont} />
           </div>
+        </div>
 
+        {/* Coluna Central: Preview */}
+        <div className="flex-1 flex flex-col items-center">
+          <div className="shadow-2xl border border-slate-200 rounded-2xl overflow-hidden bg-white">
+            <canvas 
+              ref={canvasRef}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseDown={handleCanvasMouseDown}
+              onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseLeave}
+            />
+          </div>
+        </div>
+
+        {/* Coluna Direita: Ajustes e Contorno */}
+        <div className="w-52 space-y-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 shrink-0">
+          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Ajustes</label>
+          <NumericControl label="Altura Header" value={headerHeight} onChange={setHeaderHeight} min={10} max={60} step={1} unit="%" />
+          <NumericControl label="Fonte Título" value={titleFontSize} onChange={setTitleFontSize} min={1} max={50} step={1} />
+          <NumericControl label="Fonte Subtítulo" value={subtitleFontSize} onChange={setSubtitleFontSize} min={1} max={50} step={1} />
+          <NumericControl label="Fonte Telefone" value={phoneFontSize} onChange={setPhoneFontSize} min={1} max={50} step={1} />
+          {/* Contorno */}
+          <div className="pt-2 border-t border-slate-200 mt-2">
+            <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-2 py-1">
+              <span className="text-[7px] font-black uppercase text-slate-500">Contorno</span>
+              <div className="flex items-center gap-1">
+                <input type="color" value={borderColor} onChange={(e) => setBorderColor(e.target.value)} className="w-5 h-5 p-0 border border-slate-200 rounded cursor-pointer" />
+                <button onClick={() => setBorderWidth(Math.max(0, borderWidth - 5))} className="w-5 h-5 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded text-slate-600 font-bold text-xs">−</button>
+                <span className="w-8 text-center text-[10px] font-black text-indigo-600">{borderWidth}</span>
+                <button onClick={() => setBorderWidth(Math.min(200, borderWidth + 5))} className="w-5 h-5 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded text-slate-600 font-bold text-xs">+</button>
+                <span className="text-[7px] font-black text-slate-400">PX</span>
+              </div>
+            </div>
+          </div>
           {/* Cores */}
-          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cores</label>
-            <div className="flex flex-col mt-2">
+          <div className="pt-2 border-t border-slate-200 mt-2">
+            <label className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Cores</label>
+            <div className="flex flex-col mt-1 gap-0.5">
               <SimpleColorSelector label="Fundo Placa" value={bgColor} onChange={setBgColor} />
               <SimpleColorSelector label="Fundo Header" value={headerBg} onChange={setHeaderBg} />
+              <SimpleColorSelector label="Fundo Rodapé" value={footerBg} onChange={setFooterBg} />
               <SimpleColorSelector label="Texto Header" value={headerTextColor} onChange={setHeaderTextColor} />
               <SimpleColorSelector label="Texto Corpo" value={bodyTextColor} onChange={setBodyTextColor} />
               <SimpleColorSelector label="Texto Rodapé" value={footerTextColor} onChange={setFooterTextColor} />
             </div>
           </div>
+          {/* Tamanho e Orientação */}
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 mt-2">
+            <button onClick={() => setSize(size === 'A4' ? 'A3' : 'A4')} className="bg-white border border-slate-200 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest hover:bg-slate-100">{size}</button>
+            <button onClick={() => setOrientation(orientation === 'portrait' ? 'landscape' : 'portrait')} className="bg-white border border-slate-200 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest hover:bg-slate-100">{orientation === 'portrait' ? 'Vert' : 'Horiz'}</button>
+          </div>
+          {/* Reset Posições */}
+          <button 
+            onClick={() => { setTitleOffsetX(0); setTitleOffsetY(0); setSubtitleOffsetX(0); setSubtitleOffsetY(0); }}
+            className="w-full bg-slate-200 hover:bg-slate-300 text-slate-600 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest mt-2"
+          >
+            Resetar Posições
+          </button>
         </div>
       </div>
 
