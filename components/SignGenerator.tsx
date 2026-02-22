@@ -175,6 +175,22 @@ const SignGenerator: React.FC = () => {
       });
     }
 
+    // Função para desenhar logo WhatsApp vetorial
+    const drawWhatsAppLogo = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+      const scale = size / 24;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      
+      ctx.fillStyle = '#25D366';
+      
+      // Path oficial do WhatsApp
+      const path = new Path2D('M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.414 0 .018 5.394 0 12.03a11.972 11.972 0 001.605 6.057L0 24l6.132-1.61a11.874 11.874 0 005.915 1.569h.005c6.632 0 12.028-5.398 12.03-12.03a11.85 11.85 0 00-3.48-8.502z');
+      ctx.fill(path);
+      
+      ctx.restore();
+    };
+
     // Footer Box
     if (phone) {
       const fY = height - dist35 - footerBoxH;
@@ -182,15 +198,43 @@ const SignGenerator: React.FC = () => {
       roundRect(ctx, dist35, fY, headerBoxW, footerBoxH, 20);
       ctx.fill();
 
-      let footerContent = phone.toUpperCase();
-      if (contactIcon === 'whatsapp') footerContent = `💬 ${footerContent}`;
-      if (contactIcon === 'phone') footerContent = `📞 ${footerContent}`;
-
+      const footerContent = phone.toUpperCase();
+      const iconSize = phoneFontSize * scaleFactor * 1.2;
+      
       ctx.fillStyle = footerTextColor;
       ctx.font = `900 ${phoneFontSize * scaleFactor}px ${phoneFont}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(footerContent, width / 2, fY + (footerBoxH / 2));
+      
+      const textWidth = ctx.measureText(footerContent).width;
+      const totalWidth = iconSize + 15 + textWidth;
+      const startX = (width - totalWidth) / 2;
+      
+      // Desenhar ícone
+      if (contactIcon === 'whatsapp') {
+        // Ícone WhatsApp verde vetorial
+        const iconX = startX;
+        const iconY = fY + (footerBoxH / 2) - iconSize / 2;
+        drawWhatsAppLogo(ctx, iconX, iconY, iconSize);
+        // Texto
+        ctx.fillStyle = footerTextColor;
+        ctx.font = `900 ${phoneFontSize * scaleFactor}px ${phoneFont}`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(footerContent, startX + iconSize + 15, fY + (footerBoxH / 2));
+      } else if (contactIcon === 'phone') {
+        // Ícone telefone
+        ctx.fillStyle = footerTextColor;
+        ctx.font = `900 ${phoneFontSize * scaleFactor}px ${phoneFont}`;
+        ctx.textAlign = 'center';
+        ctx.fillText(`📞 ${footerContent}`, width / 2, fY + (footerBoxH / 2));
+      } else {
+        // Sem ícone
+        ctx.fillStyle = footerTextColor;
+        ctx.font = `900 ${phoneFontSize * scaleFactor}px ${phoneFont}`;
+        ctx.textAlign = 'center';
+        ctx.fillText(footerContent, width / 2, fY + (footerBoxH / 2));
+      }
     }
 
     // Border
@@ -308,9 +352,9 @@ const SignGenerator: React.FC = () => {
             <FontSelector label="Fonte Subtítulo" value={subtitleFont} onChange={setSubtitleFont} />
             
             <div className="flex gap-1 p-0.5 bg-slate-200 rounded-lg">
-              <button onClick={() => setContactIcon('none')} className={`flex-1 py-1 rounded text-[7px] font-black uppercase ${contactIcon === 'none' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>Sem</button>
-              <button onClick={() => setContactIcon('phone')} className={`flex-1 py-1 rounded text-[7px] font-black uppercase ${contactIcon === 'phone' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>📞</button>
-              <button onClick={() => setContactIcon('whatsapp')} className={`flex-1 py-1 rounded text-[7px] font-black uppercase ${contactIcon === 'whatsapp' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>💬</button>
+              <button onClick={() => setContactIcon('none')} className={`flex-1 py-1.5 rounded text-[8px] font-black uppercase ${contactIcon === 'none' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>Sem</button>
+              <button onClick={() => setContactIcon('phone')} className={`flex-1 py-1.5 rounded text-[8px] font-black uppercase ${contactIcon === 'phone' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>📞 Tel</button>
+              <button onClick={() => setContactIcon('whatsapp')} className={`flex-1 py-1.5 rounded text-[8px] font-black uppercase ${contactIcon === 'whatsapp' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`}>📱 Whats</button>
             </div>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" className="w-full border border-slate-200 bg-white rounded-lg px-3 py-1.5 outline-none font-black text-[10px] text-indigo-600" />
             <FontSelector label="Fonte Telefone" value={phoneFont} onChange={setPhoneFont} />
