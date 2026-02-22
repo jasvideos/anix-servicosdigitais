@@ -123,13 +123,19 @@ const SignGenerator: React.FC = () => {
   const [hoveredElement, setHoveredElement] = useState<'title' | 'subtitle' | null>(null);
   const [interactionMode, setInteractionMode] = useState<'none' | 'resize-h' | 'resize-v' | 'drag'>('none');
   const [activeElement, setActiveElement] = useState<'title' | 'subtitle' | null>(null);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number; offsetX: number; offsetY: number; size: number } | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number; offsetX: number; offsetY: number; size: number; scaleX: number; scaleY: number } | null>(null);
   
   // Offsets de posição para movimentação livre
   const [titleOffsetX, setTitleOffsetX] = useState(0);
   const [titleOffsetY, setTitleOffsetY] = useState(0);
   const [subtitleOffsetX, setSubtitleOffsetX] = useState(0);
   const [subtitleOffsetY, setSubtitleOffsetY] = useState(0);
+  
+  // Escalas para esticar texto horizontalmente/verticalmente
+  const [titleScaleX, setTitleScaleX] = useState(1);
+  const [titleScaleY, setTitleScaleY] = useState(1);
+  const [subtitleScaleX, setSubtitleScaleX] = useState(1);
+  const [subtitleScaleY, setSubtitleScaleY] = useState(1);
   
   const textAreasRef = useRef<{ title: { x: number; y: number; w: number; h: number }; subtitle: { x: number; y: number; w: number; h: number } }>({
     title: { x: 0, y: 0, w: 0, h: 0 },
@@ -223,17 +229,17 @@ const SignGenerator: React.FC = () => {
       const deltaY = pos.y - dragStart.y;
       
       if (interactionMode === 'resize-h') {
-        // Resize horizontal
-        const sensitivity = 0.05;
-        const newSize = Math.max(1, Math.min(50, dragStart.size + deltaX * sensitivity));
-        if (activeElement === 'title') setTitleFontSize(Math.round(newSize));
-        else setSubtitleFontSize(Math.round(newSize));
+        // Esticar horizontalmente (scale X)
+        const sensitivity = 0.003;
+        const newScale = Math.max(0.3, Math.min(3, dragStart.scaleX + deltaX * sensitivity));
+        if (activeElement === 'title') setTitleScaleX(newScale);
+        else setSubtitleScaleX(newScale);
       } else if (interactionMode === 'resize-v') {
-        // Resize vertical
-        const sensitivity = 0.05;
-        const newSize = Math.max(1, Math.min(50, dragStart.size + deltaY * sensitivity));
-        if (activeElement === 'title') setTitleFontSize(Math.round(newSize));
-        else setSubtitleFontSize(Math.round(newSize));
+        // Esticar verticalmente (scale Y)
+        const sensitivity = 0.003;
+        const newScale = Math.max(0.3, Math.min(3, dragStart.scaleY + deltaY * sensitivity));
+        if (activeElement === 'title') setTitleScaleY(newScale);
+        else setSubtitleScaleY(newScale);
       } else if (interactionMode === 'drag') {
         // Movimentação livre
         if (activeElement === 'title') {
@@ -280,29 +286,29 @@ const SignGenerator: React.FC = () => {
     if (isOverHHandle(pos, titleArea)) {
       setActiveElement('title');
       setInteractionMode('resize-h');
-      setDragStart({ x: pos.x, y: pos.y, offsetX: titleOffsetX, offsetY: titleOffsetY, size: titleFontSize });
+      setDragStart({ x: pos.x, y: pos.y, offsetX: titleOffsetX, offsetY: titleOffsetY, size: titleFontSize, scaleX: titleScaleX, scaleY: titleScaleY });
     } else if (isOverVHandle(pos, titleArea)) {
       setActiveElement('title');
       setInteractionMode('resize-v');
-      setDragStart({ x: pos.x, y: pos.y, offsetX: titleOffsetX, offsetY: titleOffsetY, size: titleFontSize });
+      setDragStart({ x: pos.x, y: pos.y, offsetX: titleOffsetX, offsetY: titleOffsetY, size: titleFontSize, scaleX: titleScaleX, scaleY: titleScaleY });
     } else if (isOverArea(pos, titleArea)) {
       setActiveElement('title');
       setInteractionMode('drag');
-      setDragStart({ x: pos.x, y: pos.y, offsetX: titleOffsetX, offsetY: titleOffsetY, size: titleFontSize });
+      setDragStart({ x: pos.x, y: pos.y, offsetX: titleOffsetX, offsetY: titleOffsetY, size: titleFontSize, scaleX: titleScaleX, scaleY: titleScaleY });
     }
     // Subtitle interactions
     else if (isOverHHandle(pos, subtitleArea)) {
       setActiveElement('subtitle');
       setInteractionMode('resize-h');
-      setDragStart({ x: pos.x, y: pos.y, offsetX: subtitleOffsetX, offsetY: subtitleOffsetY, size: subtitleFontSize });
+      setDragStart({ x: pos.x, y: pos.y, offsetX: subtitleOffsetX, offsetY: subtitleOffsetY, size: subtitleFontSize, scaleX: subtitleScaleX, scaleY: subtitleScaleY });
     } else if (isOverVHandle(pos, subtitleArea)) {
       setActiveElement('subtitle');
       setInteractionMode('resize-v');
-      setDragStart({ x: pos.x, y: pos.y, offsetX: subtitleOffsetX, offsetY: subtitleOffsetY, size: subtitleFontSize });
+      setDragStart({ x: pos.x, y: pos.y, offsetX: subtitleOffsetX, offsetY: subtitleOffsetY, size: subtitleFontSize, scaleX: subtitleScaleX, scaleY: subtitleScaleY });
     } else if (isOverArea(pos, subtitleArea)) {
       setActiveElement('subtitle');
       setInteractionMode('drag');
-      setDragStart({ x: pos.x, y: pos.y, offsetX: subtitleOffsetX, offsetY: subtitleOffsetY, size: subtitleFontSize });
+      setDragStart({ x: pos.x, y: pos.y, offsetX: subtitleOffsetX, offsetY: subtitleOffsetY, size: subtitleFontSize, scaleX: subtitleScaleX, scaleY: subtitleScaleY });
     }
   };
 
@@ -358,31 +364,37 @@ const SignGenerator: React.FC = () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
-      const titleLines = wrapText(ctx, title.toUpperCase(), headerBoxW * 0.9);
+      const titleLines = wrapText(ctx, title.toUpperCase(), headerBoxW * 0.9 / titleScaleX);
       const lineHeight = titleFontSize * scaleFactor * 1.2;
-      const baseTitleStartY = dist35 + (headerBoxH / 2) - ((titleLines.length - 1) * lineHeight / 2);
+      const baseTitleStartY = dist35 + (headerBoxH / 2) - ((titleLines.length - 1) * lineHeight * titleScaleY / 2);
       
       // Aplicar offsets
       const titleCenterX = (width / 2) + titleOffsetX;
       const titleStartY = baseTitleStartY + titleOffsetY;
       
-      // Calcular área do título
+      // Calcular área do título (com escala)
       let maxLineWidth = 0;
       titleLines.forEach((line) => {
         const lw = ctx.measureText(line).width;
         if (lw > maxLineWidth) maxLineWidth = lw;
       });
-      const titleH = titleLines.length * lineHeight;
+      const titleW = maxLineWidth * titleScaleX;
+      const titleH = titleLines.length * lineHeight * titleScaleY;
       textAreasRef.current.title = {
-        x: titleCenterX - (maxLineWidth / 2) - 10,
-        y: titleStartY - lineHeight / 2 - 5,
-        w: maxLineWidth + 20,
+        x: titleCenterX - (titleW / 2) - 10,
+        y: titleStartY - lineHeight * titleScaleY / 2 - 5,
+        w: titleW + 20,
         h: titleH + 10
       };
       
+      // Desenhar texto com escala
+      ctx.save();
+      ctx.translate(titleCenterX, titleStartY);
+      ctx.scale(titleScaleX, titleScaleY);
       titleLines.forEach((line, i) => {
-        ctx.fillText(line, titleCenterX, titleStartY + (i * lineHeight));
+        ctx.fillText(line, 0, i * lineHeight);
       });
+      ctx.restore();
       
       // Desenhar handles se hover
       if (hoveredElement === 'title' || activeElement === 'title') {
@@ -494,32 +506,38 @@ const SignGenerator: React.FC = () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       
-      const subtitleMaxWidth = width * 0.85;
+      const subtitleMaxWidth = width * 0.85 / subtitleScaleX;
       const subtitleLines = wrapText(ctx, subtitle.toUpperCase(), subtitleMaxWidth);
       const lineHeight = subtitleFontSize * scaleFactor * 1.2;
-      const baseSubtitleStartY = bodyCenterY - ((subtitleLines.length - 1) * lineHeight / 2);
+      const baseSubtitleStartY = bodyCenterY - ((subtitleLines.length - 1) * lineHeight * subtitleScaleY / 2);
       
       // Aplicar offsets
       const subtitleCenterX = (width / 2) + subtitleOffsetX;
       const subtitleStartY = baseSubtitleStartY + subtitleOffsetY;
       
-      // Calcular área do subtítulo
+      // Calcular área do subtítulo (com escala)
       let maxLineWidth = 0;
       subtitleLines.forEach((line) => {
         const lw = ctx.measureText(line).width;
         if (lw > maxLineWidth) maxLineWidth = lw;
       });
-      const subtitleH = subtitleLines.length * lineHeight;
+      const subtitleW = maxLineWidth * subtitleScaleX;
+      const subtitleH = subtitleLines.length * lineHeight * subtitleScaleY;
       textAreasRef.current.subtitle = {
-        x: subtitleCenterX - (maxLineWidth / 2) - 10,
-        y: subtitleStartY - lineHeight / 2 - 5,
-        w: maxLineWidth + 20,
+        x: subtitleCenterX - (subtitleW / 2) - 10,
+        y: subtitleStartY - lineHeight * subtitleScaleY / 2 - 5,
+        w: subtitleW + 20,
         h: subtitleH + 10
       };
       
+      // Desenhar texto com escala
+      ctx.save();
+      ctx.translate(subtitleCenterX, subtitleStartY);
+      ctx.scale(subtitleScaleX, subtitleScaleY);
       subtitleLines.forEach((line, i) => {
-        ctx.fillText(line, subtitleCenterX, subtitleStartY + (i * lineHeight));
+        ctx.fillText(line, 0, i * lineHeight);
       });
+      ctx.restore();
       
       // Desenhar handles se hover
       if (hoveredElement === 'subtitle' || activeElement === 'subtitle') {
@@ -554,7 +572,8 @@ const SignGenerator: React.FC = () => {
     titleFontSize, subtitleFontSize, phoneFontSize,
     titleFont, subtitleFont, phoneFont,
     hoveredElement, activeElement,
-    titleOffsetX, titleOffsetY, subtitleOffsetX, subtitleOffsetY
+    titleOffsetX, titleOffsetY, subtitleOffsetX, subtitleOffsetY,
+    titleScaleX, titleScaleY, subtitleScaleX, subtitleScaleY
   ]);
 
   // Atualizar canvas quando qualquer prop mudar
@@ -663,7 +682,10 @@ const SignGenerator: React.FC = () => {
           </div>
           {/* Reset Posições */}
           <button 
-            onClick={() => { setTitleOffsetX(0); setTitleOffsetY(0); setSubtitleOffsetX(0); setSubtitleOffsetY(0); }}
+            onClick={() => { 
+              setTitleOffsetX(0); setTitleOffsetY(0); setSubtitleOffsetX(0); setSubtitleOffsetY(0);
+              setTitleScaleX(1); setTitleScaleY(1); setSubtitleScaleX(1); setSubtitleScaleY(1);
+            }}
             className="w-full bg-slate-200 hover:bg-slate-300 text-slate-600 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest mt-2"
           >
             Resetar Posições
