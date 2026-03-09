@@ -7,7 +7,7 @@ const PhotoGenerator: React.FC = () => {
   const [rawImage, setRawImage] = useState<string | null>(null);
   const [isCropping, setIsCropping] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const [zoom, setZoom] = useState(1.0);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
@@ -63,8 +63,8 @@ const PhotoGenerator: React.FC = () => {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -155,14 +155,14 @@ const PhotoGenerator: React.FC = () => {
     const finalCtx = finalCanvas.getContext('2d');
     const img = new Image();
     img.onload = () => {
-        finalCanvas.width = 600;
-        finalCanvas.height = 800;
-        if (finalCtx) {
-            finalCtx.drawImage(img, 0, 0, 600, 800);
-            setImage(finalCanvas.toDataURL('image/jpeg', 0.98));
-            setIsCropping(false);
-            setPreviewImage(null);
-        }
+      finalCanvas.width = 600;
+      finalCanvas.height = 800;
+      if (finalCtx) {
+        finalCtx.drawImage(img, 0, 0, 600, 800);
+        setImage(finalCanvas.toDataURL('image/jpeg', 0.98));
+        setIsCropping(false);
+        setPreviewImage(null);
+      }
     };
     img.src = previewImage;
   };
@@ -184,20 +184,20 @@ const PhotoGenerator: React.FC = () => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const mmToPx = 11.811; 
-    canvas.width = 105 * mmToPx; 
-    canvas.height = 148 * mmToPx; 
+    const mmToPx = 11.811;
+    canvas.width = 105 * mmToPx;
+    canvas.height = 148 * mmToPx;
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     const img = new Image();
     img.onload = () => {
-      const pW = 30 * mmToPx; 
-      const pH = 40 * mmToPx; 
+      const pW = 30 * mmToPx;
+      const pH = 40 * mmToPx;
       const gap = 0.01 * mmToPx;
-      
+
       const sX = (canvas.width - (3 * pW + 2 * gap)) / 2;
       const sY = (canvas.height - (3 * pH + 2 * gap)) / 2;
-      
+
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 3; c++) {
           const x = sX + c * (pW + gap);
@@ -289,7 +289,7 @@ const PhotoGenerator: React.FC = () => {
           </div>
           {isProcessing && <div className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest animate-pulse italic">IA Ativa</div>}
         </div>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-5 space-y-6">
             <div className="relative flex flex-col h-[520px] bg-black rounded-[2rem] overflow-hidden shadow-2xl border border-slate-800">
@@ -305,7 +305,7 @@ const PhotoGenerator: React.FC = () => {
                 </div>
               ) : isCropping && rawImage ? (
                 <div className="h-full flex flex-col bg-slate-900">
-                  <div 
+                  <div
                     className="relative crop-container cursor-move"
                     onMouseDown={(e) => handleStart(e.clientX, e.clientY)}
                     onMouseMove={(e) => handleMove(e.clientX, e.clientY)}
@@ -316,8 +316,8 @@ const PhotoGenerator: React.FC = () => {
                     onTouchEnd={handleEnd}
                   >
                     {previewImage ? (
-                      <img 
-                        src={previewImage} 
+                      <img
+                        src={previewImage}
                         className="max-w-none absolute pointer-events-none"
                         style={{
                           width: `${FRAME_WIDTH}px`,
@@ -325,21 +325,21 @@ const PhotoGenerator: React.FC = () => {
                         }}
                       />
                     ) : (
-                      <img 
-                        src={rawImage} className="max-w-none absolute pointer-events-none" 
-                        style={{ 
+                      <img
+                        src={rawImage} className="max-w-none absolute pointer-events-none"
+                        style={{
                           transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
                           transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1)',
                           transformOrigin: 'center center',
                           width: '100%',
                           filter: `brightness(${brightness}%) contrast(${contrast}%)`
-                        }} 
+                        }}
                       />
                     )}
                     <div className="mask-safe-zone">
                       <div className="frame-3x4">
-                         <div className="absolute top-1/2 left-0 right-0 border-t border-white/10"></div>
-                         <div className="absolute left-1/2 top-0 bottom-0 border-l border-white/10"></div>
+                        <div className="absolute top-1/2 left-0 right-0 border-t border-white/10"></div>
+                        <div className="absolute left-1/2 top-0 bottom-0 border-l border-white/10"></div>
                       </div>
                     </div>
                   </div>
@@ -356,6 +356,14 @@ const PhotoGenerator: React.FC = () => {
                       <span className="text-[10px] font-black text-white uppercase tracking-widest w-16">Contraste</span>
                       <input type="range" min="0" max="200" step="1" value={contrast} onChange={(e) => setContrast(Number(e.target.value))} className="flex-1 accent-indigo-500 h-2 rounded-lg" />
                     </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest w-16">Eixo X</span>
+                      <input type="range" min="-300" max="300" step="1" value={position.x} onChange={(e) => setPosition({ ...position, x: Number(e.target.value) })} className="flex-1 accent-indigo-500 h-2 rounded-lg" />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest w-16">Eixo Y</span>
+                      <input type="range" min="-300" max="300" step="1" value={position.y} onChange={(e) => setPosition({ ...position, y: Number(e.target.value) })} className="flex-1 accent-indigo-500 h-2 rounded-lg" />
+                    </div>
                     <div className="flex gap-3">
                       <button onClick={() => { setIsCropping(false); setRawImage(null); }} className="flex-1 bg-slate-800 text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest">Descartar</button>
                       <button onClick={applyCrop} className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest active:scale-95">Gerar Foto</button>
@@ -364,16 +372,16 @@ const PhotoGenerator: React.FC = () => {
                 </div>
               ) : image ? (
                 <div className="h-full w-full bg-white flex items-center justify-center p-8 relative">
-                   <img src={image} className="max-h-full max-w-full shadow-2xl border border-slate-100" alt="Final" />
-                   <div className="absolute top-4 right-4 flex gap-2">
-                     <button onClick={handleRealignment} title="Realinhar Foto" className="bg-indigo-600 text-white p-2 rounded-lg shadow-lg hover:scale-110 transition-transform flex items-center gap-2 px-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" /></svg>
-                        <span className="text-[10px] font-black uppercase">Ajustar</span>
-                     </button>
-                     <button onClick={() => { setImage(null); setRawImage(null); }} title="Excluir" className="bg-rose-600 text-white p-2 rounded-lg shadow-lg hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                     </button>
-                   </div>
+                  <img src={image} className="max-h-full max-w-full shadow-2xl border border-slate-100" alt="Final" />
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <button onClick={handleRealignment} title="Realinhar Foto" className="bg-indigo-600 text-white p-2 rounded-lg shadow-lg hover:scale-110 transition-transform flex items-center gap-2 px-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" /></svg>
+                      <span className="text-[10px] font-black uppercase">Ajustar</span>
+                    </button>
+                    <button onClick={() => { setImage(null); setRawImage(null); }} title="Excluir" className="bg-rose-600 text-white p-2 rounded-lg shadow-lg hover:scale-110 transition-transform">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center p-12 text-center text-slate-500 bg-slate-950">
@@ -397,28 +405,28 @@ const PhotoGenerator: React.FC = () => {
           </div>
 
           <div className="lg:col-span-7 bg-slate-900 rounded-[2.5rem] p-10 flex flex-col shadow-2xl min-h-[500px] border border-slate-800">
-             <h3 className="text-xl font-black text-white uppercase tracking-tighter italic mb-10">Grade para Impressão (0.01mm)</h3>
-             {image ? (
-               <div className="flex-1 flex flex-col gap-10">
-                 <div className="bg-white p-6 rounded-3xl shadow-inner mx-auto border-8 border-slate-800/50 overflow-hidden">
-                    <div className="grid grid-cols-3 bg-white p-1 border border-slate-100" style={{ gap: '0.01mm' }}>
-                      {Array.from({ length: 9 }).map((_, i) => (
-                        <div key={i} className="w-[18mm] h-[24mm] bg-white overflow-hidden border border-slate-50 flex items-center justify-center"><img src={image} className="w-full h-full object-contain" /></div>
-                      ))}
-                    </div>
-                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <button onClick={handlePrint} className="bg-indigo-600 text-white py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-indigo-700 shadow-xl">Imprimir Grade</button>
-                    <button onClick={saveAsPNG} className="bg-white text-slate-900 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-50 transition-all">Salvar PNG</button>
-                 </div>
-               </div>
-             ) : (
-               <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[2rem] text-center text-white/10 p-12 gap-4">
-                  <p className="uppercase font-black text-[10px] tracking-[0.3em]">Aguardando Geração</p>
-                  <div className="w-48 h-px bg-white/5"></div>
-                  <p className="text-[8px] max-w-[200px] opacity-40 italic">O enquadramento correto garante uma foto 3x4 oficial para documentos.</p>
-               </div>
-             )}
+            <h3 className="text-xl font-black text-white uppercase tracking-tighter italic mb-10">Grade para Impressão (0.01mm)</h3>
+            {image ? (
+              <div className="flex-1 flex flex-col gap-10">
+                <div className="bg-white p-6 rounded-3xl shadow-inner mx-auto border-8 border-slate-800/50 overflow-hidden">
+                  <div className="grid grid-cols-3 bg-white p-1 border border-slate-100" style={{ gap: '0.01mm' }}>
+                    {Array.from({ length: 9 }).map((_, i) => (
+                      <div key={i} className="w-[18mm] h-[24mm] bg-white overflow-hidden border border-slate-50 flex items-center justify-center"><img src={image} className="w-full h-full object-contain" /></div>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <button onClick={handlePrint} className="bg-indigo-600 text-white py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-indigo-700 shadow-xl">Imprimir Grade</button>
+                  <button onClick={saveAsPNG} className="bg-white text-slate-900 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[10px] hover:bg-slate-50 transition-all">Salvar PNG</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[2rem] text-center text-white/10 p-12 gap-4">
+                <p className="uppercase font-black text-[10px] tracking-[0.3em]">Aguardando Geração</p>
+                <div className="w-48 h-px bg-white/5"></div>
+                <p className="text-[8px] max-w-[200px] opacity-40 italic">O enquadramento correto garante uma foto 3x4 oficial para documentos.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -21,10 +21,10 @@ interface PhotoItem {
   scaleY: number;
 }
 
-const POLAROID_SIDE_MARGIN_RATIO = 0.10; 
-const POLAROID_TOP_MARGIN_RATIO = 0.10;  
-const POLAROID_BOTTOM_MARGIN_RATIO = 0.17; 
-const POLAROID_HEIGHT_RATIO = 1.25; 
+const POLAROID_SIDE_MARGIN_RATIO = 0.10;
+const POLAROID_TOP_MARGIN_RATIO = 0.10;
+const POLAROID_BOTTOM_MARGIN_RATIO = 0.17;
+const POLAROID_HEIGHT_RATIO = 1.25;
 
 const PhotoA4Generator: React.FC = () => {
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -52,7 +52,7 @@ const PhotoA4Generator: React.FC = () => {
   const firstSelected = photos.find(p => selectedIds.includes(p.id));
 
   const mmToPxPreview = 2.8; // Escala visual constante (representa A4 proporcionalmente)
-  
+
   // Dimensões do preview A4 proporcional
   const previewWidth = (orientation === 'portrait' ? pageSize.w : pageSize.h) * mmToPxPreview;
   const previewHeight = (orientation === 'portrait' ? pageSize.h : pageSize.w) * mmToPxPreview;
@@ -60,7 +60,7 @@ const PhotoA4Generator: React.FC = () => {
 
   const pages = useMemo(() => {
     const pagesList: PhotoItem[][] = [[]];
-    const marginMm = 8; 
+    const marginMm = 8;
     const sheetW = orientation === 'portrait' ? pageSize.w : pageSize.h;
     const sheetH = orientation === 'portrait' ? pageSize.h : pageSize.w;
     const availableW = sheetW - (marginMm * 2);
@@ -105,9 +105,9 @@ const PhotoA4Generator: React.FC = () => {
       const data = await file.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({ data });
       const pdf = await loadingTask.promise;
-      
+
       const newPhotos: PhotoItem[] = [];
-      
+
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 2.0 });
@@ -195,7 +195,7 @@ const PhotoA4Generator: React.FC = () => {
       alert("Selecione pelo menos uma foto para remover o fundo.");
       return;
     }
-    
+
     setIsProcessingIA(true);
     try {
       const updatedPhotos = [...photos];
@@ -212,7 +212,7 @@ const PhotoA4Generator: React.FC = () => {
           }
         }
       }
-      
+
       setPhotos(updatedPhotos);
       if (hasError) alert("Algumas imagens não puderam ser processadas.");
     } catch (err) {
@@ -262,10 +262,10 @@ const PhotoA4Generator: React.FC = () => {
     e.stopPropagation();
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
-    
+
     setDraggingId(photo.id);
     setDragStart({ x: clientX, y: clientY, initialPosX: photo.posX, initialPosY: photo.posY });
-    
+
     if (!selectedIds.includes(photo.id)) {
       if ('ctrlKey' in e && (e as React.MouseEvent).ctrlKey) {
         setSelectedIds(prev => [...prev, photo.id]);
@@ -292,14 +292,14 @@ const PhotoA4Generator: React.FC = () => {
     e.preventDefault();
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
-    
+
     setResizingId(photo.id);
     setResizeDirection(direction);
-    setResizeStart({ 
-      x: clientX, 
-      y: clientY, 
-      initialScaleX: photo.scaleX || 1, 
-      initialScaleY: photo.scaleY || 1 
+    setResizeStart({
+      x: clientX,
+      y: clientY,
+      initialScaleX: photo.scaleX || 1,
+      initialScaleY: photo.scaleY || 1
     });
   };
 
@@ -307,9 +307,9 @@ const PhotoA4Generator: React.FC = () => {
     if (!resizingId || !resizeDirection) return;
     const clientX = (e instanceof MouseEvent) ? e.clientX : (e as TouchEvent).touches[0].clientX;
     const clientY = (e instanceof MouseEvent) ? e.clientY : (e as TouchEvent).touches[0].clientY;
-    
+
     const sensitivity = 0.005; // Sensibilidade do redimensionamento
-    
+
     if (resizeDirection === 'horizontal') {
       const deltaX = clientX - resizeStart.x;
       const newScaleX = Math.max(0.1, Math.min(3, resizeStart.initialScaleX + (deltaX * sensitivity)));
@@ -392,29 +392,29 @@ const PhotoA4Generator: React.FC = () => {
       const clipW = isPolaroid ? pW - (pW * POLAROID_SIDE_MARGIN_RATIO * 2) : pW;
       const clipH = isPolaroid ? pH - (pW * POLAROID_TOP_MARGIN_RATIO) - (pH * POLAROID_BOTTOM_MARGIN_RATIO) : pH;
       ctx.save(); ctx.beginPath(); ctx.rect(clipX, clipY, clipW, clipH); ctx.clip();
-      
+
       const imgRatio = img.width / img.height;
       const clipRatio = clipW / clipH;
       let drawW, drawH;
       if (imgRatio > clipRatio) { drawW = clipW; drawH = clipW / imgRatio; } else { drawH = clipH; drawW = clipH * imgRatio; }
-      
+
       const centerX = clipX + (clipW / 2); const centerY = clipY + (clipH / 2);
       ctx.translate(centerX + (photo.posX * (dpiFactor / mmToPxPreview)), centerY + (photo.posY * (dpiFactor / mmToPxPreview)));
       ctx.rotate((photo.rotation * Math.PI) / 180);
       ctx.scale(photo.zoom * (photo.scaleX || 1), photo.zoom * (photo.scaleY || 1));
-      
+
       // Apply filters
       if (ctx.filter) {
         ctx.filter = `brightness(${photo.brightness || 100}%) contrast(${photo.contrast || 100}%)`;
       }
-      
+
       ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
-      
+
       // Reset filter
       if (ctx.filter) {
         ctx.filter = 'none';
       }
-      
+
       ctx.restore(); ctx.restore();
       currentX += pW + (gapMm * dpiFactor);
       currentRowHeight = Math.max(currentRowHeight, pH);
@@ -431,14 +431,14 @@ const PhotoA4Generator: React.FC = () => {
     const width = photo.widthMm * factor;
     const height = (isPolaroid ? photo.widthMm * POLAROID_HEIGHT_RATIO : photo.heightMm) * factor;
     const isSelected = !isPrint && selectedIds.includes(photo.id);
-    
+
     return (
       <div key={photo.id}
         onMouseDown={!isPrint ? (e) => handleDragStart(e, photo) : undefined}
         onTouchStart={!isPrint ? (e) => handleDragStart(e, photo) : undefined}
         style={{ width: `${width}${unit}`, height: `${height}${unit}`, position: 'relative', border: isPolaroid ? `${0.4 * factor}${unit} solid #cbd5e1` : (hasBorder ? `${borderWidthMm * factor}${unit} solid ${borderColor}` : 'none'), boxSizing: 'border-box', overflow: 'visible', backgroundColor: isPolaroid ? 'white' : '#ffffff', boxShadow: isPolaroid && !isPrint ? '0 4px 6px -1px rgb(0 0 0 / 0.1)' : 'none' }}
         className={`transition-all cursor-move select-none ${isSelected ? 'ring-4 ring-blue-500 ring-inset z-20 shadow-2xl scale-[1.02]' : ''}`}>
-        
+
         {/* Resize handles - only show when selected, resize mode active and not printing */}
         {isSelected && showResizeHandles && (
           <>
@@ -488,23 +488,23 @@ const PhotoA4Generator: React.FC = () => {
             </div>
           </>
         )}
-        
+
         <div className="w-full h-full relative overflow-hidden" style={{ padding: isPolaroid ? `${width * POLAROID_TOP_MARGIN_RATIO}${unit} ${width * POLAROID_SIDE_MARGIN_RATIO}${unit} ${height * POLAROID_BOTTOM_MARGIN_RATIO}${unit} ${width * POLAROID_SIDE_MARGIN_RATIO}${unit}` : '0' }}>
           <div className="w-full h-full relative overflow-hidden bg-slate-50" style={{ border: isPolaroid ? `${0.4 * factor}${unit} solid #94a3b8` : 'none', boxSizing: 'border-box' }}>
-            <img 
-              src={photo.src} 
-              style={{ 
-                position: 'absolute', 
-                top: '50%', 
-                left: '50%', 
-                transform: `translate(-50%, -50%) translate(${photo.posX}px, ${photo.posY}px) rotate(${photo.rotation}deg) scale(${photo.zoom * (photo.scaleX || 1)}, ${photo.zoom * (photo.scaleY || 1)})`, 
-                width: '100%', 
-                height: '100%', 
-                objectFit: 'contain', 
+            <img
+              src={photo.src}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: `translate(-50%, -50%) translate(${photo.posX}px, ${photo.posY}px) rotate(${photo.rotation}deg) scale(${photo.zoom * (photo.scaleX || 1)}, ${photo.zoom * (photo.scaleY || 1)})`,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
                 pointerEvents: 'none',
                 filter: `brightness(${photo.brightness || 100}%) contrast(${photo.contrast || 100}%)`
-              }} 
-              draggable={false} 
+              }}
+              draggable={false}
             />
           </div>
         </div>
@@ -520,6 +520,13 @@ const PhotoA4Generator: React.FC = () => {
             size: ${orientation === 'portrait' ? pageSize.w : pageSize.h}mm ${orientation === 'portrait' ? pageSize.h : pageSize.w}mm;
             margin: 0;
           }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            margin: 0;
+            padding: 0;
+            background: white !important;
+          }
           .print-page { 
             width: ${orientation === 'portrait' ? pageSize.w : pageSize.h}mm !important; 
             height: ${orientation === 'portrait' ? pageSize.h : pageSize.w}mm !important; 
@@ -531,11 +538,17 @@ const PhotoA4Generator: React.FC = () => {
             padding: 8mm !important; 
             box-sizing: border-box !important; 
             page-break-after: always !important; 
+            page-break-inside: avoid !important;
+            break-after: page !important;
             margin: 0 auto !important;
             background: white !important;
+            position: relative !important;
           }
           .print-page > div {
             flex-shrink: 0 !important;
+          }
+          .no-print {
+            display: none !important;
           }
         }
         .checkerboard { background-image: linear-gradient(45deg, #f8fafc 25%, transparent 25%), linear-gradient(-45deg, #f8fafc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f8fafc 75%), linear-gradient(-45deg, transparent 75%, #f8fafc 75%); background-size: 20px 20px; }
@@ -594,7 +607,7 @@ const PhotoA4Generator: React.FC = () => {
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
                   <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Contorno (Borda)</label>
                   <div className="flex items-center gap-3">
-                    <div onClick={() => setHasBorder(!hasBorder)} className={`w-10 h-5 rounded-full p-0.5 cursor-pointer transition-colors flex-shrink-0 ${hasBorder ? 'bg-blue-600' : 'bg-slate-300'}`}> 
+                    <div onClick={() => setHasBorder(!hasBorder)} className={`w-10 h-5 rounded-full p-0.5 cursor-pointer transition-colors flex-shrink-0 ${hasBorder ? 'bg-blue-600' : 'bg-slate-300'}`}>
                       <div className={`w-4 h-4 bg-white rounded-full transition-transform shadow ${hasBorder ? 'translate-x-5' : 'translate-x-0'}`} />
                     </div>
                     <div className="flex items-center gap-2 flex-1">
@@ -621,8 +634,8 @@ const PhotoA4Generator: React.FC = () => {
                   <label className="text-[8px] font-black text-indigo-600 uppercase tracking-widest">
                     Zoom Máximo 10x {selectedIds.length > 0 ? `(${selectedIds.length})` : '(Preview)'}
                   </label>
-                  <button 
-                    onClick={applyAutoCrop} 
+                  <button
+                    onClick={applyAutoCrop}
                     disabled={selectedIds.length === 0}
                     className="text-[7px] font-black text-white bg-indigo-600 px-2 py-0.5 rounded uppercase tracking-tight disabled:opacity-30"
                   >
@@ -630,21 +643,21 @@ const PhotoA4Generator: React.FC = () => {
                   </button>
                 </div>
                 <div className="flex items-center justify-center gap-1">
-                  <button 
+                  <button
                     onClick={() => updatePhotos({ zoom: Math.max(0.1, (firstSelected?.zoom || 1) - 0.1) })}
                     disabled={selectedIds.length === 0}
                     className="p-1 bg-white border border-indigo-200 rounded text-indigo-600 hover:bg-indigo-100 transition-colors disabled:opacity-30"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
                   </button>
-                  <div 
+                  <div
                     className="bg-white border border-indigo-200 px-2 py-1 rounded font-black text-xs text-indigo-700 min-w-[55px] text-center cursor-ns-resize select-none"
                     onWheel={(e) => { e.preventDefault(); if (selectedIds.length > 0) updatePhotos({ zoom: Math.max(0.1, Math.min(10, (firstSelected?.zoom || 1) + (e.deltaY < 0 ? 0.1 : -0.1))) }); }}
                     title="Scroll para ajustar"
                   >
                     {(firstSelected?.zoom || 1).toFixed(2)}x
                   </div>
-                  <button 
+                  <button
                     onClick={() => updatePhotos({ zoom: Math.min(10, (firstSelected?.zoom || 1) + 0.1) })}
                     disabled={selectedIds.length === 0}
                     className="p-1 bg-white border border-indigo-200 rounded text-indigo-600 hover:bg-indigo-100 transition-colors disabled:opacity-30"
@@ -658,20 +671,20 @@ const PhotoA4Generator: React.FC = () => {
               <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl space-y-2">
                 <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">Espaçamento Entre Fotos</label>
                 <div className="flex items-center justify-center gap-1">
-                  <button 
+                  <button
                     onClick={() => setGapMm(Math.max(0, gapMm - 1))}
                     className="p-1 bg-white border border-slate-200 rounded text-slate-600 hover:bg-slate-100 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
                   </button>
-                  <div 
+                  <div
                     className="bg-white border border-slate-200 px-2 py-1 rounded font-black text-xs text-slate-700 min-w-[55px] text-center cursor-ns-resize select-none"
                     onWheel={(e) => { e.preventDefault(); setGapMm(Math.max(0, Math.min(50, gapMm + (e.deltaY < 0 ? 1 : -1)))); }}
                     title="Scroll para ajustar"
                   >
                     {gapMm}mm
                   </div>
-                  <button 
+                  <button
                     onClick={() => setGapMm(Math.min(50, gapMm + 1))}
                     className="p-1 bg-white border border-slate-200 rounded text-slate-600 hover:bg-slate-100 transition-colors"
                   >
@@ -686,25 +699,25 @@ const PhotoA4Generator: React.FC = () => {
               {/* AJUSTES DE IMAGEM */}
               <div className="p-3 bg-amber-50 border border-amber-100 rounded-2xl space-y-2">
                 <label className="text-[8px] font-black text-amber-700 uppercase tracking-widest block">Ajustes de Imagem</label>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-[7px] font-bold text-amber-600 uppercase">Brilho</span>
                   <div className="flex items-center gap-1">
-                    <button 
+                    <button
                       onClick={() => updatePhotos({ brightness: Math.max(0, (firstSelected?.brightness || 100) - 1) })}
                       disabled={selectedIds.length === 0}
                       className="p-0.5 bg-white border border-amber-200 rounded text-amber-600 hover:bg-amber-100 transition-colors disabled:opacity-30"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
                     </button>
-                    <div 
+                    <div
                       className="bg-white border border-amber-200 px-1.5 py-0.5 rounded font-black text-[10px] text-amber-700 min-w-[45px] text-center cursor-ns-resize select-none"
                       onWheel={(e) => { e.preventDefault(); if (selectedIds.length > 0) updatePhotos({ brightness: Math.max(0, Math.min(200, (firstSelected?.brightness || 100) + (e.deltaY < 0 ? 1 : -1))) }); }}
                       title="Scroll para ajustar"
                     >
                       {firstSelected?.brightness || 100}%
                     </div>
-                    <button 
+                    <button
                       onClick={() => updatePhotos({ brightness: Math.min(200, (firstSelected?.brightness || 100) + 1) })}
                       disabled={selectedIds.length === 0}
                       className="p-0.5 bg-white border border-amber-200 rounded text-amber-600 hover:bg-amber-100 transition-colors disabled:opacity-30"
@@ -717,21 +730,21 @@ const PhotoA4Generator: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-[7px] font-bold text-amber-600 uppercase">Contraste</span>
                   <div className="flex items-center gap-1">
-                    <button 
+                    <button
                       onClick={() => updatePhotos({ contrast: Math.max(0, (firstSelected?.contrast || 100) - 1) })}
                       disabled={selectedIds.length === 0}
                       className="p-0.5 bg-white border border-amber-200 rounded text-amber-600 hover:bg-amber-100 transition-colors disabled:opacity-30"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
                     </button>
-                    <div 
+                    <div
                       className="bg-white border border-amber-200 px-1.5 py-0.5 rounded font-black text-[10px] text-amber-700 min-w-[45px] text-center cursor-ns-resize select-none"
                       onWheel={(e) => { e.preventDefault(); if (selectedIds.length > 0) updatePhotos({ contrast: Math.max(0, Math.min(200, (firstSelected?.contrast || 100) + (e.deltaY < 0 ? 1 : -1))) }); }}
                       title="Scroll para ajustar"
                     >
                       {firstSelected?.contrast || 100}%
                     </div>
-                    <button 
+                    <button
                       onClick={() => updatePhotos({ contrast: Math.min(200, (firstSelected?.contrast || 100) + 1) })}
                       disabled={selectedIds.length === 0}
                       className="p-0.5 bg-white border border-amber-200 rounded text-amber-600 hover:bg-amber-100 transition-colors disabled:opacity-30"
@@ -756,21 +769,21 @@ const PhotoA4Generator: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-center gap-1">
-                  <button 
+                  <button
                     onClick={() => updatePhotos({ rotation: (firstSelected?.rotation || 0) - 1 })}
                     disabled={selectedIds.length === 0}
                     className="p-1 bg-white border border-emerald-200 rounded text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-30"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
                   </button>
-                  <div 
+                  <div
                     className="bg-white border border-emerald-200 px-2 py-1 rounded font-black text-xs text-emerald-700 min-w-[55px] text-center cursor-ns-resize select-none"
                     onWheel={(e) => { e.preventDefault(); if (selectedIds.length > 0) updatePhotos({ rotation: (firstSelected?.rotation || 0) + (e.deltaY < 0 ? 1 : -1) }); }}
                     title="Scroll para ajustar"
                   >
                     {firstSelected?.rotation || 0}°
                   </div>
-                  <button 
+                  <button
                     onClick={() => updatePhotos({ rotation: (firstSelected?.rotation || 0) + 1 })}
                     disabled={selectedIds.length === 0}
                     className="p-1 bg-white border border-emerald-200 rounded text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-30"
@@ -786,18 +799,17 @@ const PhotoA4Generator: React.FC = () => {
               <div className="flex justify-between items-center">
                 <label className="text-[8px] font-black text-rose-700 uppercase tracking-widest">Redimensionar (Livre)</label>
                 <div className="flex gap-1">
-                  <button 
+                  <button
                     onClick={() => setShowResizeHandles(!showResizeHandles)}
-                    className={`text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tight transition-colors ${
-                      showResizeHandles 
-                        ? 'bg-rose-600 text-white' 
+                    className={`text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tight transition-colors ${showResizeHandles
+                        ? 'bg-rose-600 text-white'
                         : 'bg-white text-rose-600 border border-rose-300'
-                    }`}
+                      }`}
                   >
                     {showResizeHandles ? '✅ Alças ON' : '🔲 Alças'}
                   </button>
-                  <button 
-                    onClick={() => updatePhotos({ scaleX: 1.0, scaleY: 1.0 })} 
+                  <button
+                    onClick={() => updatePhotos({ scaleX: 1.0, scaleY: 1.0 })}
                     disabled={selectedIds.length === 0}
                     className="text-[7px] font-black text-white bg-rose-600 px-2 py-0.5 rounded uppercase tracking-tight disabled:opacity-30"
                   >
@@ -805,26 +817,26 @@ const PhotoA4Generator: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[7px] font-bold text-rose-600 uppercase">Escala X (Largura)</span>
                   <div className="flex items-center gap-1">
-                    <button 
+                    <button
                       onClick={() => updatePhotos({ scaleX: Math.max(0.1, (firstSelected?.scaleX || 1) - 0.05) })}
                       disabled={selectedIds.length === 0}
                       className="p-0.5 bg-white border border-rose-200 rounded text-rose-600 hover:bg-rose-100 transition-colors disabled:opacity-30"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
                     </button>
-                    <div 
+                    <div
                       className="bg-white border border-rose-200 px-1.5 py-0.5 rounded font-black text-[10px] text-rose-700 min-w-[45px] text-center cursor-ns-resize select-none"
                       onWheel={(e) => { e.preventDefault(); if (selectedIds.length > 0) updatePhotos({ scaleX: Math.max(0.1, Math.min(3, (firstSelected?.scaleX || 1) + (e.deltaY < 0 ? 0.05 : -0.05))) }); }}
                       title="Scroll para ajustar"
                     >
                       {(firstSelected?.scaleX || 1).toFixed(2)}x
                     </div>
-                    <button 
+                    <button
                       onClick={() => updatePhotos({ scaleX: Math.min(3, (firstSelected?.scaleX || 1) + 0.05) })}
                       disabled={selectedIds.length === 0}
                       className="p-0.5 bg-white border border-rose-200 rounded text-rose-600 hover:bg-rose-100 transition-colors disabled:opacity-30"
@@ -837,21 +849,21 @@ const PhotoA4Generator: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-[7px] font-bold text-rose-600 uppercase">Escala Y (Altura)</span>
                   <div className="flex items-center gap-1">
-                    <button 
+                    <button
                       onClick={() => updatePhotos({ scaleY: Math.max(0.1, (firstSelected?.scaleY || 1) - 0.05) })}
                       disabled={selectedIds.length === 0}
                       className="p-0.5 bg-white border border-rose-200 rounded text-rose-600 hover:bg-rose-100 transition-colors disabled:opacity-30"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 15l-7-7-7 7" /></svg>
                     </button>
-                    <div 
+                    <div
                       className="bg-white border border-rose-200 px-1.5 py-0.5 rounded font-black text-[10px] text-rose-700 min-w-[45px] text-center cursor-ns-resize select-none"
                       onWheel={(e) => { e.preventDefault(); if (selectedIds.length > 0) updatePhotos({ scaleY: Math.max(0.1, Math.min(3, (firstSelected?.scaleY || 1) + (e.deltaY < 0 ? 0.05 : -0.05))) }); }}
                       title="Scroll para ajustar"
                     >
                       {(firstSelected?.scaleY || 1).toFixed(2)}x
                     </div>
-                    <button 
+                    <button
                       onClick={() => updatePhotos({ scaleY: Math.min(3, (firstSelected?.scaleY || 1) + 0.05) })}
                       disabled={selectedIds.length === 0}
                       className="p-0.5 bg-white border border-rose-200 rounded text-rose-600 hover:bg-rose-100 transition-colors disabled:opacity-30"
@@ -861,16 +873,83 @@ const PhotoA4Generator: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               <p className="text-[6px] text-rose-400 italic">💡 Estique livremente sem manter proporção</p>
             </div>
 
-            <button 
-                onClick={handleRemoveBackground}
-                disabled={selectedIds.length === 0 || isProcessingIA}
-                className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
-              >
-                {isProcessingIA ? '⌛ Processando...' : '✨ Remover Fundo IA'}
+            {/* Linha 4: Mover Posição (X e Y) */}
+            <div className="p-3 bg-sky-50 border border-sky-100 rounded-2xl space-y-3">
+              <div className="flex justify-between items-center">
+                <label className="text-[8px] font-black text-sky-700 uppercase tracking-widest">Mover (X / Y)</label>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => updatePhotos({ posX: 0, posY: 0 })}
+                    disabled={selectedIds.length === 0}
+                    className="text-[7px] font-black text-white bg-sky-600 px-2 py-0.5 rounded uppercase tracking-tight disabled:opacity-30 hover:bg-sky-700 transition"
+                  >
+                    ↩️ Centro
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[7px] font-black uppercase text-sky-600">
+                    <span>Eixo X (Horiz.)</span>
+                    <span>{Math.round(firstSelected?.posX || 0)}px</span>
+                  </div>
+                  <input
+                    type="range" min="-500" max="500" step="1"
+                    value={firstSelected?.posX || 0}
+                    onChange={(e) => updatePhotos({ posX: Number(e.target.value) })}
+                    disabled={selectedIds.length === 0}
+                    className="w-full accent-sky-500 h-1.5 bg-sky-200 rounded-lg appearance-none cursor-pointer disabled:opacity-30"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[7px] font-black uppercase text-sky-600">
+                    <span>Eixo Y (Vert.)</span>
+                    <span>{Math.round(firstSelected?.posY || 0)}px</span>
+                  </div>
+                  <input
+                    type="range" min="-500" max="500" step="1"
+                    value={firstSelected?.posY || 0}
+                    onChange={(e) => updatePhotos({ posY: Number(e.target.value) })}
+                    disabled={selectedIds.length === 0}
+                    className="w-full accent-sky-500 h-1.5 bg-sky-200 rounded-lg appearance-none cursor-pointer disabled:opacity-30"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center">
+                <div className="grid grid-cols-3 gap-1">
+                  <div />
+                  <button onClick={() => updatePhotos({ posY: (firstSelected?.posY || 0) - 1 })} disabled={selectedIds.length === 0} className="w-6 h-6 flex items-center justify-center bg-white border border-sky-200 rounded shadow-sm text-sky-600 hover:bg-sky-50 active:scale-90 disabled:opacity-30" title="Subir (1px)">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
+                  </button>
+                  <div />
+                  <button onClick={() => updatePhotos({ posX: (firstSelected?.posX || 0) - 1 })} disabled={selectedIds.length === 0} className="w-6 h-6 flex items-center justify-center bg-white border border-sky-200 rounded shadow-sm text-sky-600 hover:bg-sky-50 active:scale-90 disabled:opacity-30" title="Esquerda (1px)">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                  </button>
+                  <div className="w-6 h-6 flex items-center justify-center bg-sky-100 rounded text-[7px] font-black text-sky-600">1px</div>
+                  <button onClick={() => updatePhotos({ posX: (firstSelected?.posX || 0) + 1 })} disabled={selectedIds.length === 0} className="w-6 h-6 flex items-center justify-center bg-white border border-sky-200 rounded shadow-sm text-sky-600 hover:bg-sky-50 active:scale-90 disabled:opacity-30" title="Direita (1px)">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                  </button>
+                  <div />
+                  <button onClick={() => updatePhotos({ posY: (firstSelected?.posY || 0) + 1 })} disabled={selectedIds.length === 0} className="w-6 h-6 flex items-center justify-center bg-white border border-sky-200 rounded shadow-sm text-sky-600 hover:bg-sky-50 active:scale-90 disabled:opacity-30" title="Descer (1px)">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
+                  </button>
+                  <div />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleRemoveBackground}
+              disabled={selectedIds.length === 0 || isProcessingIA}
+              className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+            >
+              {isProcessingIA ? '⌛ Processando...' : '✨ Remover Fundo IA'}
             </button>
           </div>
 
@@ -885,14 +964,14 @@ const PhotoA4Generator: React.FC = () => {
       <div className="lg:col-span-8 flex flex-col gap-4 no-print relative h-full overflow-y-auto custom-scrollbar pb-10">
         <div className="flex-1 flex flex-col items-center gap-10 pt-4">
           <div className="sticky top-0 z-30 w-full flex justify-center pointer-events-none">
-             <div className="bg-slate-900/80 backdrop-blur text-white px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest shadow-2xl border border-white/10 pointer-events-auto flex items-center gap-4 mb-4">
-                <span>Arraste e gire para enquadrar</span>
-                {photos.length > 0 && (
-                  <button onClick={toggleSelectAll} className={`px-3 py-1 rounded-lg border transition-all ${selectedIds.length === photos.length ? 'bg-blue-600 border-blue-600' : 'bg-white/10 border-white/20'}`}>
-                    {selectedIds.length === photos.length ? 'DESELECIONAR' : 'SELECIONAR TODAS'}
-                  </button>
-                )}
-             </div>
+            <div className="bg-slate-900/80 backdrop-blur text-white px-6 py-2 rounded-full text-[9px] font-black uppercase tracking-widest shadow-2xl border border-white/10 pointer-events-auto flex items-center gap-4 mb-4">
+              <span>Arraste e gire para enquadrar</span>
+              {photos.length > 0 && (
+                <button onClick={toggleSelectAll} className={`px-3 py-1 rounded-lg border transition-all ${selectedIds.length === photos.length ? 'bg-blue-600 border-blue-600' : 'bg-white/10 border-white/20'}`}>
+                  {selectedIds.length === photos.length ? 'DESELECIONAR' : 'SELECIONAR TODAS'}
+                </button>
+              )}
+            </div>
           </div>
 
           {pages.map((page, pageIndex) => (
@@ -901,19 +980,19 @@ const PhotoA4Generator: React.FC = () => {
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Página {pageIndex + 1} / {pages.length}</span>
                 <button onClick={() => saveAsPNG(pageIndex)} className="text-indigo-600 font-black text-[9px] uppercase tracking-widest bg-white px-4 py-2 rounded-xl border border-indigo-100 shadow-sm hover:shadow-md transition-all">Baixar PNG</button>
               </div>
-              <div 
-                style={{ 
-                  width: `${previewWidth}px`, 
-                  minHeight: `${previewHeight}px`, 
-                  backgroundColor: 'white', 
-                  padding: `${previewPadding}px`, 
-                  display: 'flex', 
-                  flexWrap: 'wrap', 
-                  gap: `${gapMm * mmToPxPreview}px`, 
-                  justifyContent: 'flex-start', 
-                  alignContent: 'flex-start', 
-                  flexShrink: 0 
-                }} 
+              <div
+                style={{
+                  width: `${previewWidth}px`,
+                  minHeight: `${previewHeight}px`,
+                  backgroundColor: 'white',
+                  padding: `${previewPadding}px`,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: `${gapMm * mmToPxPreview}px`,
+                  justifyContent: 'flex-start',
+                  alignContent: 'flex-start',
+                  flexShrink: 0
+                }}
                 className="shadow-2xl relative transition-all duration-500 border border-slate-100 checkerboard"
               >
                 {page.map(photo => renderPhotoContent(photo, false))}
@@ -922,9 +1001,9 @@ const PhotoA4Generator: React.FC = () => {
           ))}
 
           {photos.length === 0 && (
-             <div className="flex flex-col items-center justify-center h-[500px] text-slate-300 opacity-20 italic font-black uppercase tracking-[0.3em]">
-                Aguardando Fotos...
-             </div>
+            <div className="flex flex-col items-center justify-center h-[500px] text-slate-300 opacity-20 italic font-black uppercase tracking-[0.3em]">
+              Aguardando Fotos...
+            </div>
           )}
         </div>
       </div>
