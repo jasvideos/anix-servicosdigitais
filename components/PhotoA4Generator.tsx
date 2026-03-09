@@ -598,6 +598,36 @@ const PhotoA4Generator: React.FC = () => {
                 </div>
               </div>
 
+              {/* Tamanhos Pré-definidos */}
+              <div className="p-3 bg-violet-50 border border-violet-100 rounded-2xl space-y-2 mb-1">
+                <div className="flex justify-between items-center">
+                  <label className="text-[8px] font-black text-violet-700 uppercase tracking-widest">Tamanho da Foto</label>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { name: 'A6', w: 105, h: 148 },
+                    { name: 'A5', w: 148, h: 210 },
+                    { name: 'A4', w: 210, h: 297 },
+                  ].map(preset => {
+                    const isActive = firstSelected?.widthMm === preset.w && firstSelected?.heightMm === preset.h;
+                    return (
+                      <button
+                        key={preset.name}
+                        onClick={() => updatePhotos({ widthMm: preset.w, heightMm: preset.h })}
+                        disabled={selectedIds.length === 0}
+                        className={`flex flex-col items-center py-2 px-1 rounded-xl border transition-all disabled:opacity-30 ${isActive
+                          ? 'bg-violet-600 text-white border-violet-700 shadow-md'
+                          : 'bg-white text-violet-700 border-violet-200 hover:bg-violet-100'
+                          }`}
+                      >
+                        <span className="text-[9px] font-black uppercase">{preset.name}</span>
+                        <span className="text-[6px] font-bold opacity-70">{preset.w}×{preset.h}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Duplicar / Excluir */}
               <div className="grid grid-cols-2 gap-3 pt-4">
                 <button onClick={duplicateSelected} disabled={selectedIds.length === 0} className="flex items-center justify-center gap-2 bg-slate-900 text-white py-3 px-4 rounded-full font-black text-xs uppercase tracking-widest hover:bg-black transition-colors disabled:opacity-30">
@@ -950,41 +980,10 @@ const PhotoA4Generator: React.FC = () => {
                 </div>
               </div>
             </div>
-            {/* Tamanhos Pré-definidos */}
-            <div className="p-3 bg-violet-50 border border-violet-100 rounded-2xl space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="text-[8px] font-black text-violet-700 uppercase tracking-widest">Tamanho da Foto</label>
-                <span className="text-[6px] font-bold text-violet-400 uppercase">Retrato</span>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { name: 'A6', w: 105, h: 148 },
-                  { name: 'A5', w: 148, h: 210 },
-                  { name: 'A4', w: 210, h: 297 },
-                  { name: 'A3', w: 297, h: 420 },
-                ].map(preset => {
-                  const isActive = firstSelected?.widthMm === preset.w && firstSelected?.heightMm === preset.h;
-                  return (
-                    <button
-                      key={preset.name}
-                      onClick={() => updatePhotos({ widthMm: preset.w, heightMm: preset.h })}
-                      disabled={selectedIds.length === 0}
-                      className={`flex flex-col items-center py-2 px-1 rounded-xl border transition-all disabled:opacity-30 ${isActive
-                          ? 'bg-violet-600 text-white border-violet-700 shadow-md'
-                          : 'bg-white text-violet-700 border-violet-200 hover:bg-violet-100'
-                        }`}
-                    >
-                      <span className="text-[9px] font-black uppercase">{preset.name}</span>
-                      <span className="text-[6px] font-bold opacity-70">{preset.w}×{preset.h}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[6px] text-violet-400 italic">💡 Define largura e altura das fotos selecionadas</p>
-            </div>
 
             <button
               onClick={handleRemoveBackground}
+
               disabled={selectedIds.length === 0 || isProcessingIA}
               className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[9px] tracking-widest shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 disabled:opacity-30"
             >
