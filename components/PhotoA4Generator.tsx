@@ -432,6 +432,11 @@ const PhotoA4Generator: React.FC = () => {
     const height = (isPolaroid ? photo.widthMm * POLAROID_HEIGHT_RATIO : photo.heightMm) * factor;
     const isSelected = !isPrint && selectedIds.includes(photo.id);
 
+    // posX/posY are stored in preview px (2.8px/mm).
+    // For print: convert to mm so CSS handles the unit consistently.
+    const posXFinal = isPrint ? photo.posX / mmToPxPreview : photo.posX;
+    const posYFinal = isPrint ? photo.posY / mmToPxPreview : photo.posY;
+    const posUnit = isPrint ? 'mm' : 'px';
     return (
       <div key={photo.id}
         onMouseDown={!isPrint ? (e) => handleDragStart(e, photo) : undefined}
@@ -497,7 +502,7 @@ const PhotoA4Generator: React.FC = () => {
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
-                transform: `translate(-50%, -50%) translate(${photo.posX}px, ${photo.posY}px) rotate(${photo.rotation}deg) scale(${photo.zoom * (photo.scaleX || 1)}, ${photo.zoom * (photo.scaleY || 1)})`,
+                transform: `translate(-50%, -50%) translate(${posXFinal}${posUnit}, ${posYFinal}${posUnit}) rotate(${photo.rotation}deg) scale(${photo.zoom * (photo.scaleX || 1)}, ${photo.zoom * (photo.scaleY || 1)})`,
                 width: '100%',
                 height: '100%',
                 objectFit: 'contain',
@@ -513,19 +518,12 @@ const PhotoA4Generator: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in no-select h-full">
+    <div id="photo-a4-app" className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in no-select h-full relative">
       <style>{`
         @media print {
           @page {
             size: ${orientation === 'portrait' ? pageSize.w : pageSize.h}mm ${orientation === 'portrait' ? pageSize.h : pageSize.w}mm;
             margin: 0;
-          }
-          body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            margin: 0;
-            padding: 0;
-            background: white !important;
           }
           .print-page { 
             width: ${orientation === 'portrait' ? pageSize.w : pageSize.h}mm !important; 
@@ -539,16 +537,25 @@ const PhotoA4Generator: React.FC = () => {
             box-sizing: border-box !important; 
             page-break-after: always !important; 
             page-break-inside: avoid !important;
-            break-after: page !important;
-            margin: 0 auto !important;
+            break-inside: avoid !important;
+            margin: 0 !important;
             background: white !important;
             position: relative !important;
           }
           .print-page > div {
             flex-shrink: 0 !important;
           }
-          .no-print {
+          /* Hide the main app grid, only show print-only */
+          #photo-a4-app {
+            display: block !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          #photo-a4-app > *:not(.print-only) {
             display: none !important;
+          }
+          #photo-a4-app > .print-only {
+            display: block !important;
           }
         }
         .checkerboard { background-image: linear-gradient(45deg, #f8fafc 25%, transparent 25%), linear-gradient(-45deg, #f8fafc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f8fafc 75%), linear-gradient(-45deg, transparent 75%, #f8fafc 75%); background-size: 20px 20px; }
@@ -802,8 +809,8 @@ const PhotoA4Generator: React.FC = () => {
                   <button
                     onClick={() => setShowResizeHandles(!showResizeHandles)}
                     className={`text-[7px] font-black px-2 py-0.5 rounded uppercase tracking-tight transition-colors ${showResizeHandles
-                        ? 'bg-rose-600 text-white'
-                        : 'bg-white text-rose-600 border border-rose-300'
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-white text-rose-600 border border-rose-300'
                       }`}
                   >
                     {showResizeHandles ? '✅ Alças ON' : '🔲 Alças'}
@@ -942,6 +949,38 @@ const PhotoA4Generator: React.FC = () => {
                   <div />
                 </div>
               </div>
+            </div>
+            {/* Tamanhos Pré-definidos */}
+            <div className="p-3 bg-violet-50 border border-violet-100 rounded-2xl space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-[8px] font-black text-violet-700 uppercase tracking-widest">Tamanho da Foto</label>
+                <span className="text-[6px] font-bold text-violet-400 uppercase">Retrato</span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { name: 'A6', w: 105, h: 148 },
+                  { name: 'A5', w: 148, h: 210 },
+                  { name: 'A4', w: 210, h: 297 },
+                  { name: 'A3', w: 297, h: 420 },
+                ].map(preset => {
+                  const isActive = firstSelected?.widthMm === preset.w && firstSelected?.heightMm === preset.h;
+                  return (
+                    <button
+                      key={preset.name}
+                      onClick={() => updatePhotos({ widthMm: preset.w, heightMm: preset.h })}
+                      disabled={selectedIds.length === 0}
+                      className={`flex flex-col items-center py-2 px-1 rounded-xl border transition-all disabled:opacity-30 ${isActive
+                          ? 'bg-violet-600 text-white border-violet-700 shadow-md'
+                          : 'bg-white text-violet-700 border-violet-200 hover:bg-violet-100'
+                        }`}
+                    >
+                      <span className="text-[9px] font-black uppercase">{preset.name}</span>
+                      <span className="text-[6px] font-bold opacity-70">{preset.w}×{preset.h}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[6px] text-violet-400 italic">💡 Define largura e altura das fotos selecionadas</p>
             </div>
 
             <button

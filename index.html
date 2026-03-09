@@ -36,7 +36,6 @@
             html,
             body {
                 height: auto !important;
-                min-height: 100% !important;
                 overflow: visible !important;
                 background: white !important;
                 margin: 0 !important;
@@ -47,34 +46,21 @@
 
             #root {
                 height: auto !important;
-                min-height: 100% !important;
                 overflow: visible !important;
             }
 
-            /* Esconde todo o conteúdo usando visibility */
-            body * {
-                visibility: hidden;
-            }
-
+            /* Esconde elementos sem impressão usando display:none */
             .no-print {
                 display: none !important;
             }
 
-            /* Mostra a área de impressão e todo seu conteúdo */
-            .print-only,
-            .print-only * {
-                visibility: visible !important;
-            }
-
+            /* Elementos que normalmente estão ocultos agora ficam visíveis */
             .print-only {
                 display: block !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
+                position: static !important;
                 width: 100% !important;
                 height: auto !important;
                 background: white !important;
-                z-index: 99999 !important;
             }
         }
 
