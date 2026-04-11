@@ -112,12 +112,13 @@ export const generateRentalContract = async (data: ContractData): Promise<string
 };
 
 /**
- * Remove o fundo de uma imagem usando API dedicada de IA.
+ * Remove o fundo de uma imagem usando IA no navegador.
+ * Não precisa de servidor - processa 100% local no browser.
  * @param imageSource Pode ser uma string base64 completa ou apenas os dados base64.
  */
 export const removeBackgroundAI = async (imageSource: string): Promise<string | null> => {
-  // Usa a API dedicada de remoção de fundo (mais precisa e rápida)
-  return removeBackground(imageSource, 'u2net');
+  // Usa processamento local no navegador (100% gratuito, sem servidor)
+  return removeBackground(imageSource);
 };
 
 /**

@@ -1,11 +1,15 @@
 /**
  * Serviço de Remoção de Fundo de Imagens
  * 
- * Usa a API dedicada de remoção de fundo baseada em IA (rembg).
- * API hospedada no Render: https://background-removal-api-dlf8.onrender.com
+ * Processa 100% no navegador usando IA - SEM SERVIDOR NECESSÁRIO!
+ * Usa a biblioteca @imgly/background-removal que baixa o modelo de IA
+ * e processa localmente no browser do usuário.
  */
 
-const API_URL = import.meta.env.VITE_BG_REMOVAL_API || 'https://background-removal-api-dlf8.onrender.com';
+import { removeBackground as imglyRemoveBackground } from '@imgly/background-removal';
+
+// Cache do estado de carregamento do modelo
+let modelLoaded = false;
 
 /**
  * Converte uma string base64 para um Blob
@@ -38,48 +42,50 @@ async function blobToDataURL(blob: Blob): Promise<string> {
 }
 
 /**
- * Remove o fundo de uma imagem usando a API dedicada.
+ * Remove o fundo de uma imagem usando IA no navegador.
  * 
  * @param imageSource - String base64 da imagem (com ou sem prefixo data:image...)
- * @param model - Modelo de IA a usar (padrão: u2net)
- *                Opções: u2net, u2netp (rápido), u2net_human_seg (pessoas), 
- *                        isnet-general-use, isnet-anime
- * @param backgroundColor - Cor de fundo opcional (hex, ex: "#FFFFFF" para branco)
+ * @param _model - Ignorado (mantido para compatibilidade)
+ * @param _backgroundColor - Ignorado (mantido para compatibilidade)
+ * @param onProgress - Callback opcional para progresso
  * @returns Data URL da imagem sem fundo ou null em caso de erro
  */
 export async function removeBackground(
   imageSource: string, 
-  model: string = 'u2net',
-  backgroundColor?: string
+  _model: string = 'default',
+  _backgroundColor?: string,
+  onProgress?: (progress: number, message: string) => void
 ): Promise<string | null> {
   try {
     // Converte base64 para blob
     const blob = base64ToBlob(imageSource, 'image/png');
     
-    // Prepara o FormData
-    const formData = new FormData();
-    formData.append('image', blob, 'image.png');
-    formData.append('model', model);
-    formData.append('format', 'png');
-    
-    if (backgroundColor) {
-      formData.append('bgcolor', backgroundColor);
+    // Notifica início
+    if (onProgress) {
+      onProgress(0, modelLoaded ? 'Processando imagem...' : 'Baixando modelo de IA (primeira vez)...');
     }
     
-    // Envia para a API
-    const response = await fetch(`${API_URL}/remove-background`, {
-      method: 'POST',
-      body: formData,
+    // Processa com a biblioteca imgly (100% no browser)
+    const resultBlob = await imglyRemoveBackground(blob, {
+      progress: (key, current, total) => {
+        if (onProgress) {
+          const percent = Math.round((current / total) * 100);
+          if (key === 'compute:inference') {
+            onProgress(percent, 'Removendo fundo...');
+          } else if (key === 'fetch:model') {
+            onProgress(percent, 'Baixando modelo de IA...');
+            modelLoaded = true;
+          }
+        }
+      }
     });
     
-    if (!response.ok) {
-      console.error('Erro na API de remoção de fundo:', response.status, response.statusText);
-      return null;
-    }
-    
-    // Converte a resposta (image/png) para data URL base64
-    const resultBlob = await response.blob();
+    // Converte resultado para data URL
     const dataUrl = await blobToDataURL(resultBlob);
+    
+    if (onProgress) {
+      onProgress(100, 'Concluído!');
+    }
     
     return dataUrl;
   } catch (error) {
@@ -90,45 +96,21 @@ export async function removeBackground(
 
 /**
  * Remove o fundo de uma imagem a partir de uma URL.
- * 
- * @param imageUrl - URL da imagem
- * @param model - Modelo de IA a usar
- * @param backgroundColor - Cor de fundo opcional
- * @returns Data URL da imagem sem fundo ou null em caso de erro
  */
 export async function removeBackgroundFromUrl(
   imageUrl: string,
-  model: string = 'u2net',
-  backgroundColor?: string
+  _model: string = 'default',
+  _backgroundColor?: string,
+  onProgress?: (progress: number, message: string) => void
 ): Promise<string | null> {
   try {
-    const body: Record<string, string> = {
-      url: imageUrl,
-      model: model,
-      format: 'png',
-    };
+    // Busca a imagem
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const base64 = await blobToDataURL(blob);
     
-    if (backgroundColor) {
-      body.bgcolor = backgroundColor;
-    }
-    
-    const response = await fetch(`${API_URL}/remove-background-url`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-    
-    if (!response.ok) {
-      console.error('Erro na API de remoção de fundo:', response.status, response.statusText);
-      return null;
-    }
-    
-    const resultBlob = await response.blob();
-    const dataUrl = await blobToDataURL(resultBlob);
-    
-    return dataUrl;
+    // Usa a função principal
+    return removeBackground(base64, _model, _backgroundColor, onProgress);
   } catch (error) {
     console.error('Erro ao remover fundo da URL:', error);
     return null;
@@ -136,27 +118,15 @@ export async function removeBackgroundFromUrl(
 }
 
 /**
- * Lista os modelos disponíveis na API.
+ * Lista os modelos disponíveis (apenas 1 no modo browser).
  */
 export async function getAvailableModels(): Promise<string[]> {
-  try {
-    const response = await fetch(`${API_URL}/models`);
-    if (!response.ok) return [];
-    const data = await response.json();
-    return data.models || [];
-  } catch {
-    return [];
-  }
+  return ['default'];
 }
 
 /**
- * Verifica se a API está disponível.
+ * Sempre retorna true pois não depende de servidor.
  */
 export async function checkApiHealth(): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_URL}/api`);
-    return response.ok;
-  } catch {
-    return false;
-  }
+  return true;
 }
