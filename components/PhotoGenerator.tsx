@@ -1,12 +1,15 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { removeBackgroundAI } from '../services/geminiService';
+import { useRemoveBackground } from '../services/useRemoveBackground';
+import RemoveBackgroundProgress from './RemoveBackgroundProgress';
 
 const PhotoGenerator: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
   const [rawImage, setRawImage] = useState<string | null>(null);
   const [isCropping, setIsCropping] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Hook de remoção de fundo com progresso
+  const { removeBackground, isProcessing, progress, progressMessage } = useRemoveBackground();
 
   const [zoom, setZoom] = useState(1.0);
   const [brightness, setBrightness] = useState(100);
@@ -125,15 +128,11 @@ const PhotoGenerator: React.FC = () => {
 
   const handleRemoveBackground = async () => {
     if (!image) return;
-    setIsProcessing(true);
     try {
-      const base64 = image.split(',')[1];
-      const result = await removeBackgroundAI(base64);
+      const result = await removeBackground(image);
       if (result) setImage(result);
     } catch (err) {
       alert("Falha ao remover fundo.");
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -430,6 +429,13 @@ const PhotoGenerator: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Barra de progresso da remoção de fundo */}
+      <RemoveBackgroundProgress 
+        isProcessing={isProcessing} 
+        progress={progress} 
+        message={progressMessage} 
+      />
 
       <div className="print-only">
         {image && Array.from({ length: 9 }).map((_, i) => (

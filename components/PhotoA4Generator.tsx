@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { removeBackgroundAI } from '../services/geminiService';
+import { useRemoveBackground } from '../services/useRemoveBackground';
+import RemoveBackgroundProgress from './RemoveBackgroundProgress';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configuração do worker do PDF.js
@@ -40,7 +41,9 @@ const PhotoA4Generator: React.FC = () => {
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, initialPosX: 0, initialPosY: 0 });
-  const [isProcessingIA, setIsProcessingIA] = useState(false);
+  
+  // Hook de remoção de fundo com progresso
+  const { removeBackground, isProcessing: isProcessingIA, progress, progressMessage } = useRemoveBackground();
 
   // Resize state
   const [resizingId, setResizingId] = useState<string | null>(null);
@@ -196,7 +199,6 @@ const PhotoA4Generator: React.FC = () => {
       return;
     }
 
-    setIsProcessingIA(true);
     try {
       const updatedPhotos = [...photos];
       let hasError = false;
@@ -204,7 +206,7 @@ const PhotoA4Generator: React.FC = () => {
       for (let i = 0; i < updatedPhotos.length; i++) {
         if (selectedIds.includes(updatedPhotos[i].id)) {
           const currentSrc: string = updatedPhotos[i].src;
-          const result = await removeBackgroundAI(currentSrc);
+          const result = await removeBackground(currentSrc);
           if (result) {
             updatedPhotos[i] = { ...updatedPhotos[i], src: result };
           } else {
@@ -218,8 +220,6 @@ const PhotoA4Generator: React.FC = () => {
     } catch (err) {
       console.error(err);
       alert("Falha ao processar remoção de fundo com IA.");
-    } finally {
-      setIsProcessingIA(false);
     }
   };
 
@@ -1045,6 +1045,13 @@ const PhotoA4Generator: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Barra de progresso da remoção de fundo */}
+      <RemoveBackgroundProgress 
+        isProcessing={isProcessingIA} 
+        progress={progress} 
+        message={progressMessage} 
+      />
 
       <div className="print-only">
         {pages.map((page, pageIndex) => (

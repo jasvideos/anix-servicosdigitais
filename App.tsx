@@ -14,6 +14,10 @@ import SignGenerator from './components/SignGenerator';
 import FinancialControl from './components/FinancialControl';
 import SalesCostCalculator from './components/SalesCostCalculator';
 import ReceiptGenerator from './components/ReceiptGenerator';
+import { preloadModel } from './services/backgroundRemovalService';
+
+// Pré-carrega o modelo de IA em background (melhora primeira remoção de fundo)
+preloadModel().catch(() => {});
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);

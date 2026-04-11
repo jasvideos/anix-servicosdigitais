@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { removeBackgroundAI } from '../services/geminiService';
+import { useRemoveBackground } from '../services/useRemoveBackground';
+import RemoveBackgroundProgress from './RemoveBackgroundProgress';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configuração do worker do PDF.js
@@ -9,7 +10,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@4.10.38/buil
 const LabelGenerator: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
   const [rawImage, setRawImage] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Hook de remoção de fundo com progresso
+  const { removeBackground, isProcessing, progress, progressMessage } = useRemoveBackground();
   
   const [shape, setShape] = useState<'rect' | 'circle'>('rect');
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
@@ -83,18 +86,14 @@ const LabelGenerator: React.FC = () => {
 
   const handleRemoveBackground = async () => {
     if (!image) return;
-    setIsProcessing(true);
     try {
-      const base64 = image.split(',')[1];
-      const result = await removeBackgroundAI(base64);
+      const result = await removeBackground(image);
       if (result) {
         setImage(result);
         setRawImage(result);
       }
     } catch (err) {
       alert("Falha ao remover fundo.");
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -501,6 +500,13 @@ const LabelGenerator: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Barra de progresso da remoção de fundo */}
+      <RemoveBackgroundProgress 
+        isProcessing={isProcessing} 
+        progress={progress} 
+        message={progressMessage} 
+      />
 
       <div className="print-only">
         {image && Array.from({ length: totalLabels }).map((_, i) => (

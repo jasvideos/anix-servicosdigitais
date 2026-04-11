@@ -1,7 +1,8 @@
 
 import { GoogleGenAI } from "@google/genai";
 import React, { useEffect, useRef, useState } from 'react';
-import { removeBackgroundAI } from '../services/geminiService';
+import { useRemoveBackground } from '../services/useRemoveBackground';
+import RemoveBackgroundProgress from './RemoveBackgroundProgress';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Configuração do worker do PDF.js
@@ -18,6 +19,9 @@ const PrintMasterPro: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [dpi, setDpi] = useState(0);
   const [colorMode, setColorMode] = useState<'color' | 'grayscale'>('color');
+
+  // Hook de remoção de fundo com progresso
+  const { removeBackground, isProcessing: isBgProcessing, progress, progressMessage } = useRemoveBackground();
 
   // Estados para PDF
   const [pdfDoc, setPdfDoc] = useState<any>(null);
@@ -184,15 +188,13 @@ const PrintMasterPro: React.FC = () => {
 
   const removeBg = async () => {
     if (!image) return;
-    setIsProcessing(true);
-    const result = await removeBackgroundAI(image.split(',')[1]);
+    const result = await removeBackground(image);
     if (result) {
       setImage(result);
       const img = new Image();
       img.onload = () => setDimensions({ width: img.width, height: img.height });
       img.src = result;
     }
-    setIsProcessing(false);
   };
 
   const handlePrint = () => { 
@@ -568,6 +570,13 @@ const PrintMasterPro: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Barra de progresso da remoção de fundo */}
+      <RemoveBackgroundProgress 
+        isProcessing={isBgProcessing} 
+        progress={progress} 
+        message={progressMessage} 
+      />
 
       <div className="print-only">
         {image && (
