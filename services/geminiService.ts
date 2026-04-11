@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { ContractData, ResumeData } from "../types";
+import { removeBackground } from "./backgroundRemovalService";
 
 // Helper para inicializar o AI com a chave do ambiente de forma segura
 const getAI = () => {
@@ -111,36 +112,12 @@ export const generateRentalContract = async (data: ContractData): Promise<string
 };
 
 /**
- * Remove o fundo de uma imagem.
+ * Remove o fundo de uma imagem usando API dedicada de IA.
  * @param imageSource Pode ser uma string base64 completa ou apenas os dados base64.
  */
 export const removeBackgroundAI = async (imageSource: string): Promise<string | null> => {
-  try {
-    const ai = getAI();
-    // Limpeza da string base64 caso venha com o prefixo data:image...
-    const cleanBase64 = imageSource.includes(',') ? imageSource.split(',')[1] : imageSource;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } }, 
-          { text: 'Remove the background and return only the subject on pure transparent white background. Return only the image data.' }
-        ]
-      }
-    });
-
-    // Procura por dados binários na resposta
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro na remoção de fundo:", error);
-    return null;
-  }
+  // Usa a API dedicada de remoção de fundo (mais precisa e rápida)
+  return removeBackground(imageSource, 'u2net');
 };
 
 /**
