@@ -165,7 +165,7 @@ const PhotoA4Generator: React.FC = () => {
   const [activeCropId, setActiveCropId] = useState<string | null>(null);
   const [cropBox, setCropBox] = useState<{ startX: number, startY: number, currX: number, currY: number, active: boolean } | null>(null);
 
-  const [hasBorder, setHasBorder] = useState(true);
+  const [hasBorder, setHasBorder] = useState(false);
   const [borderColor, setBorderColor] = useState('#334155');
   const [borderWidthMm, setBorderWidthMm] = useState(0.5);
 
@@ -370,19 +370,28 @@ const PhotoA4Generator: React.FC = () => {
           const img = new Image();
           img.onload = () => {
             const aspect = img.width / img.height;
-            let widthMm = 80;
-            let heightMm = 100;
+            
+            // Calcula o tamanho em milímetros baseado em um padrão de 300 DPI para impressão de alta resolução
+            const dpi = 300;
+            let widthMm = Math.round((img.width / dpi) * 25.4);
+            let heightMm = Math.round((img.height / dpi) * 25.4);
 
-            // Ajusta a largura ou altura proporcionalmente para manter a proporção original e evitar cortes
-            if (aspect > 1) {
-              // Paisagem (horizontal)
-              widthMm = 80;
-              heightMm = Math.round(80 / aspect);
-            } else {
-              // Retrato (vertical)
-              heightMm = 100;
-              widthMm = Math.round(100 * aspect);
+            // Garante que a imagem caiba inteira dentro da folha inicialmente, sem passar dos limites da página
+            const maxW = (orientation === 'portrait' ? pageSize.w : pageSize.h) - (marginMm * 2) - 2;
+            const maxH = (orientation === 'portrait' ? pageSize.h : pageSize.w) - (marginMm * 2) - 2;
+
+            if (widthMm > maxW) {
+              widthMm = maxW;
+              heightMm = Math.round(maxW / aspect);
             }
+            if (heightMm > maxH) {
+              heightMm = maxH;
+              widthMm = Math.round(maxH * aspect);
+            }
+
+            // Garante tamanhos mínimos válidos
+            widthMm = Math.max(15, widthMm);
+            heightMm = Math.max(15, heightMm);
 
             updatePhotosState(prev => [...prev, {
               id,
