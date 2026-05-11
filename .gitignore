@@ -7,20 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.vscode
-.DS_Store
-.vercel
-dist
-dist-ssr
+# Dependencies
+node_modules/
+dist/
+dist-ssr/
 *.local
 
 # Editor directories and files
@@ -33,3 +23,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Vercel
+.vercel

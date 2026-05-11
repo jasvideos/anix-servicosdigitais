@@ -1,7 +1,8 @@
 {
-  "name": "ANIX COPIADORA_SERVIÇOS DIGITAIS",
+  "name": "SERVIÇOS DIGITAIS ANIX",
   "description": "Uma plataforma inteligente para geração instantânea de documentos essenciais: Fotos 3x4, Currículos e Contratos de Aluguel.",
   "requestFramePermissions": [
     "camera"
-  ]
+  ],
+  "majorCapabilities": []
 }

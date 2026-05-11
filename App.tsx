@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView } from './types';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import PhotoGenerator from './components/PhotoGenerator';
+import PhotoA4Generator from './components/PhotoA4Generator';
+import PrintMasterPro from './components/PrintMasterPro';
 import ContractGenerator from './components/ContractGenerator';
 import QRCodePlateGenerator from './components/QRCodePlateGenerator';
 import LabelGenerator from './components/LabelGenerator';
@@ -14,7 +16,57 @@ import SalesCostCalculator from './components/SalesCostCalculator';
 import ReceiptGenerator from './components/ReceiptGenerator';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
+  const [currentView, setCurrentView] = useState<AppView>(AppView.PHOTO_A4);
+
+  // Efeito de roteamento Deep Link robusto e PWA File Launch
+  useEffect(() => {
+    const checkUrlParams = () => {
+      const params = new URLSearchParams(window.location.search);
+      const viewParam = params.get('view');
+      
+      if (viewParam === 'RESUME') {
+        setCurrentView(AppView.RESUME);
+      } else if (viewParam === 'PHOTO_3X4') {
+        setCurrentView(AppView.PHOTO_3X4);
+      } else if (viewParam === 'CONTRACT') {
+        setCurrentView(AppView.CONTRACT);
+      }
+    };
+
+    checkUrlParams();
+
+    // PWA Launch Queue integration for file handling
+    if ('launchQueue' in window && 'LaunchParams' in window) {
+      (window as any).launchQueue.setConsumer(async (launchParams: any) => {
+        if (!launchParams.files.length) return;
+        
+        const files: File[] = [];
+        for (const fileHandle of launchParams.files) {
+          try {
+            const file = await fileHandle.getFile();
+            files.push(file);
+          } catch (err) {
+            console.error("Error reading file:", err);
+          }
+        }
+        
+        if (files.length > 0) {
+          setCurrentView(AppView.PHOTO_A4); // Always route to PhotoA4 for images
+          (window as any).__pwaFiles = ((window as any).__pwaFiles || []).concat(files);
+          window.dispatchEvent(new Event('pwa-files-received'));
+        }
+      });
+    }
+
+    // Limpeza estética da URL após 3 segundos
+    if (window.location.search) {
+      const timer = setTimeout(() => {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   const renderView = () => {
     switch (currentView) {
@@ -22,6 +74,10 @@ const App: React.FC = () => {
         return <Dashboard onNavigate={setCurrentView} />;
       case AppView.PHOTO_3X4:
         return <PhotoGenerator />;
+      case AppView.PHOTO_A4:
+        return <PhotoA4Generator />;
+      case AppView.PRINT_MASTER:
+        return <PrintMasterPro />;
       case AppView.CONTRACT:
         return <ContractGenerator />;
       case AppView.QR_PLATE:
