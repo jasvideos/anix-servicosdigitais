@@ -1,10 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { removeBackgroundAI } from '../services/geminiService';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Configuração do worker do PDF.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@4.10.38/build/pdf.worker.mjs`;
 
 const LabelGenerator: React.FC = () => {
   const [image, setImage] = useState<string | null>(null);
@@ -12,7 +8,6 @@ const LabelGenerator: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   
   const [shape, setShape] = useState<'rect' | 'circle'>('rect');
-  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [widthMm, setWidthMm] = useState(50);
   const [heightMm, setHeightMm] = useState(30);
   const [marginMm, setMarginMm] = useState(2);
@@ -35,49 +30,16 @@ const LabelGenerator: React.FC = () => {
     }
   }, [shape, widthMm]);
 
-  const processPdfFile = async (file: File) => {
-    setIsProcessing(true);
-    try {
-      const data = await file.arrayBuffer();
-      const loadingTask = pdfjsLib.getDocument({ data });
-      const pdf = await loadingTask.promise;
-      const page = await pdf.getPage(1); // Pega apenas a primeira página como arte da etiqueta
-      
-      const viewport = page.getViewport({ scale: 2.5 });
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-
-      if (context) {
-        await page.render({ canvasContext: context, viewport, canvas: canvas }).promise;
-        const src = canvas.toDataURL('image/png');
-        setRawImage(src);
-        setImage(src);
-        setIsCropping(true);
-      }
-    } catch (err) {
-      console.error("Erro no PDF:", err);
-      alert("Erro ao ler o PDF.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.type === 'application/pdf') {
-        processPdfFile(file);
-      } else {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setRawImage(reader.result as string);
-          setImage(reader.result as string);
-          setIsCropping(true);
-        };
-        reader.readAsDataURL(file);
-      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setRawImage(reader.result as string);
+        setImage(reader.result as string);
+        setIsCropping(true);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -159,12 +121,10 @@ const LabelGenerator: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // A4 300 DPI
     const mmToPx = 11.811;
-    const canvasW = orientation === 'portrait' ? 210 : 297;
-    const canvasH = orientation === 'portrait' ? 297 : 210;
-    
-    canvas.width = canvasW * mmToPx;
-    canvas.height = canvasH * mmToPx;
+    canvas.width = 210 * mmToPx;
+    canvas.height = 297 * mmToPx;
 
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -177,7 +137,7 @@ const LabelGenerator: React.FC = () => {
       
       const totalGridW = (cols * wPx) + ((cols - 1) * mPx);
       const startX = (canvas.width - totalGridW) / 2;
-      const startY = 4 * mmToPx;
+      const startY = 4 * mmToPx; // Margem superior mínima
 
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -210,17 +170,17 @@ const LabelGenerator: React.FC = () => {
       }
 
       const link = document.createElement('a');
-      link.download = `etiquetas-anix-${orientation}.png`;
+      link.download = `etiquetas-anix.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     };
     img.src = image;
   };
 
-  const pageW = orientation === 'portrait' ? 210 : 297;
-  const pageH = orientation === 'portrait' ? 297 : 210;
-  const safeAreaW = pageW - 8; 
-  const safeAreaH = pageH - 8;
+  // Área Segura Ajustada: A4 tem 210x297mm. 
+  // Usamos 202mm de largura (4mm margem cada lado) para permitir cálculos mais precisos de encaixe.
+  const safeAreaW = 202; 
+  const safeAreaH = 289;
   
   const cols = Math.floor((safeAreaW + marginMm) / (widthMm + marginMm)) || 1;
   const rows = Math.floor((safeAreaH + marginMm) / (heightMm + marginMm)) || 1;
@@ -237,8 +197,8 @@ const LabelGenerator: React.FC = () => {
               position: absolute;
               left: 0;
               top: 0;
-              width: ${pageW}mm;
-              height: ${pageH}mm;
+              width: 210mm;
+              min-height: 297mm;
               padding: 4mm 0;
               background: white;
               display: grid !important;
@@ -266,13 +226,14 @@ const LabelGenerator: React.FC = () => {
               object-fit: contain;
             }
             @page {
-              size: A4 ${orientation};
+              size: A4;
               margin: 0;
             }
           }
         `}
       </style>
 
+      {/* Coluna 1: Configurações */}
       <div className="lg:col-span-4 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-200 no-print flex flex-col h-fit">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Configurações</h2>
@@ -294,30 +255,6 @@ const LabelGenerator: React.FC = () => {
                 className={`flex-1 py-3 rounded-xl font-bold text-[10px] transition-all border uppercase tracking-widest ${shape === 'circle' ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200' : 'bg-white text-slate-600 border-slate-200'}`}
               >
                 Circular
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Orientação da Folha</label>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setOrientation('portrait')}
-                className={`flex-1 py-3 rounded-xl font-bold text-[10px] transition-all border uppercase tracking-widest flex items-center justify-center gap-2 ${orientation === 'portrait' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                Retrato
-              </button>
-              <button 
-                onClick={() => setOrientation('landscape')}
-                className={`flex-1 py-3 rounded-xl font-bold text-[10px] transition-all border uppercase tracking-widest flex items-center justify-center gap-2 ${orientation === 'landscape' ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200'}`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ transform: 'rotate(90deg)' }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                Paisagem
               </button>
             </div>
           </div>
@@ -356,7 +293,7 @@ const LabelGenerator: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Editor de Arte / PDF</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Editor de Arte</label>
             <div className="flex flex-col h-[520px] bg-slate-900 rounded-2xl overflow-hidden border-2 border-indigo-500/20 shadow-2xl">
               {isCropping && rawImage ? (
                 <>
@@ -385,8 +322,8 @@ const LabelGenerator: React.FC = () => {
               ) : (
                 <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-slate-800/50 transition-all bg-slate-900 group">
                   <div className="bg-indigo-600 p-5 rounded-2xl shadow-xl mb-4 group-hover:scale-105 transition-transform"><svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2 2z" /></svg></div>
-                  <p className="text-white text-[10px] font-black uppercase tracking-widest text-center px-4">Carregar Arte ou PDF</p>
-                  <input type="file" className="hidden" accept=".pdf, .png, .jpg, .jpeg, .gif, .webp, .tiff, .svg, image/*, application/pdf" onChange={handleFileUpload} />
+                  <p className="text-white text-[10px] font-black uppercase tracking-widest">Carregar Arte</p>
+                  <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
                 </label>
               )}
             </div>
@@ -398,11 +335,12 @@ const LabelGenerator: React.FC = () => {
         </div>
       </div>
 
+      {/* Coluna 2: Folha de Impressão (Preview) */}
       <div className="lg:col-span-8 space-y-6 flex flex-col h-full overflow-hidden no-print">
         <div className="flex items-center justify-between shrink-0 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
           <div className="space-y-1">
             <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Folha de Impressão</h2>
-            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{totalLabels} etiquetas / folha A4 ({orientation === 'portrait' ? 'Vertical' : 'Horizontal'})</p>
+            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{totalLabels} etiquetas / folha A4</p>
           </div>
           {image && (
             <div className="flex gap-3">
@@ -413,7 +351,16 @@ const LabelGenerator: React.FC = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
-                PNG
+                Salvar PNG
+              </button>
+              <button 
+                onClick={handlePrint} 
+                className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 flex items-center gap-3 transition-all hover:-translate-y-1 uppercase tracking-widest text-[10px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Salvar em PDF
               </button>
               <button 
                 onClick={handlePrint} 
@@ -430,15 +377,7 @@ const LabelGenerator: React.FC = () => {
 
         <div className="flex-1 bg-slate-50 rounded-[3rem] overflow-hidden border border-slate-200 relative shadow-inner">
           <div className="absolute inset-0 overflow-auto p-12 flex justify-center items-start scrollbar-thin scrollbar-thumb-slate-300">
-            <div 
-              className="relative bg-white shadow-2xl p-0 transition-all duration-500" 
-              style={{ 
-                width: `${pageW}mm`, 
-                minHeight: `${pageH}mm`,
-                transform: 'scale(0.8)',
-                transformOrigin: 'top center'
-              }}
-            >
+            <div className="relative bg-white shadow-2xl p-0 origin-top scale-[0.5] sm:scale-[0.7] lg:scale-[0.9] xl:scale-[1.0]" style={{ width: '210mm', minHeight: '297mm' }}>
               <div 
                 style={{ 
                   display: 'grid',
@@ -467,9 +406,7 @@ const LabelGenerator: React.FC = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="col-span-full py-40 flex flex-col items-center justify-center text-slate-200 opacity-20">
-                    <span className="text-8xl font-black uppercase rotate-[-30deg]">A4 {orientation}</span>
-                  </div>
+                  <div className="col-span-full py-40 flex flex-col items-center justify-center text-slate-200 opacity-20"><span className="text-8xl font-black uppercase rotate-[-30deg]">A4 TEMPLATE</span></div>
                 )}
               </div>
             </div>
@@ -477,6 +414,7 @@ const LabelGenerator: React.FC = () => {
         </div>
       </div>
 
+      {/* ÁREA DE IMPRESSÃO REAL - Visível apenas no diálogo de impressão */}
       <div className="hidden print-area">
         {image && Array.from({ length: totalLabels }).map((_, i) => (
           <div key={i} className="label-item">
