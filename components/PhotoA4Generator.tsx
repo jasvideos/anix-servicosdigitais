@@ -258,6 +258,7 @@ const PhotoA4Generator: React.FC = () => {
   ) : null;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const workspaceRef = useRef<HTMLDivElement | null>(null);
     const mmToPxPreview = 2.8; // Escala visual aumentada
 
   const pages = useMemo(() => {
@@ -649,6 +650,34 @@ const PhotoA4Generator: React.FC = () => {
     };
   }, [photos, selectedIds, clipboard, contextMenu.visible]);
 
+  // Intercepta o evento 'wheel' com { passive: false } no workspace para evitar o scroll nativo da página ao dar zoom livre
+  useEffect(() => {
+    const el = workspaceRef.current;
+    if (!el) return;
+
+    const handleWheelNative = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      const photoEl = target.closest('[id^="photo-"]');
+      if (photoEl) {
+        const id = photoEl.id.replace('photo-', '');
+        if (selectedIds.includes(id)) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const zoomDelta = e.deltaY < 0 ? 0.05 : -0.05;
+          updatePhotosState((currentPhotos: any) => 
+            currentPhotos.map((p: any) => p.id === id ? { ...p, zoom: Math.max(0.1, Math.min(10, (p.zoom || 1) + zoomDelta)) } : p)
+          );
+        }
+      }
+    };
+
+    el.addEventListener('wheel', handleWheelNative, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheelNative);
+    };
+  }, [selectedIds]);
+
   const handlePhotoMouseDown = (e: React.MouseEvent, photoId: string) => {
     if (e.button === 2) {
       e.preventDefault();
@@ -929,6 +958,11 @@ const PhotoA4Generator: React.FC = () => {
         onMouseDown={!isPrint && activeCropId !== photo.id ? (e) => handlePhotoMouseDown(e, photo.id) : undefined}
         onTouchStart={!isPrint ? (e) => handleDragStart(e, photo) : undefined}
         onContextMenu={(e) => { e.preventDefault(); if (!activeCropId) handleContextMenu(e, photo.id); }}
+        onDoubleClick={!isPrint ? () => {
+          updatePhotosState((currentPhotos: any) => 
+            currentPhotos.map((p: any) => p.id === photo.id ? { ...p, zoom: 1.0, posX: 0, posY: 0 } : p)
+          );
+        } : undefined}
         style={{ 
           width: `${width}${unit}`, 
           height: `${height}${unit}`, 
@@ -1023,6 +1057,36 @@ const PhotoA4Generator: React.FC = () => {
              )}
            </div>
         )}
+
+         {/* DICA DE ZOOM LIVRE (SCROLL) */}
+         {!isPrint && selectedIds.includes(photo.id) && !photo.isTextNode && (
+            <div className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-[8px] text-white font-extrabold px-1.5 py-0.5 rounded pointer-events-none z-50 shadow select-none uppercase tracking-wider animate-pulse">
+              🖱️ Scroll = Zoom Livre | dblclick = Reset
+            </div>
+         )}
+
+         {/* RESIZE HANDLE */}
+         {!isPrint && selectedIds.includes(photo.id) && !photo.isTextNode && (
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, photo)}
+              onTouchStart={(e) => handleResizeStart(e, photo)}
+              style={{
+                position: 'absolute',
+                bottom: '3px',
+                right: '3px',
+                width: '14px',
+                height: '14px',
+                backgroundColor: '#3b82f6',
+                border: '2px solid #ffffff',
+                borderRadius: '50%',
+                cursor: 'se-resize',
+                zIndex: 50,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+              }}
+              className="hover:scale-125 transition-transform"
+              title="Redimensionamento Livre (Arraste para redimensionar)"
+            />
+         )}
       </div>
     );
   };
@@ -1088,8 +1152,8 @@ const PhotoA4Generator: React.FC = () => {
                         <input type="number" disabled={selectedIds.length === 0 || isPolaroid} value={firstSelected?.heightMm || 100} onChange={(e) => updatePhotos({ heightMm: Number(e.target.value) })} className="w-14 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-[10px] font-bold text-center text-blue-700 disabled:opacity-50" />
                      </div>
                      {!isPolaroid && selectedIds.length > 0 && (
-                        <div className="grid grid-cols-3 gap-1 mt-1">
-                           {[ {l:"A5", w:148, h:210}, {l:"A4", w:210, h:297}, {l:"A3", w:297, h:420} ].map(size => (
+                        <div className="grid grid-cols-4 gap-1 mt-1">
+                           {[ {l:"A6", w:105, h:148}, {l:"A5", w:148, h:210}, {l:"A4", w:210, h:297}, {l:"A3", w:297, h:420} ].map(size => (
                              <button 
                                key={size.l} 
                                onClick={() => updatePhotos({ widthMm: size.w, heightMm: size.h })}
@@ -1260,6 +1324,7 @@ const PhotoA4Generator: React.FC = () => {
       </div>
       {/* WORKSPACE PREVIEW AREA */}
       <div 
+        ref={workspaceRef}
         className="flex-1 flex flex-col gap-6 no-print overflow-y-auto custom-scrollbar p-6 bg-slate-100/50"
         onContextMenu={(e) => {
           if (e.target === e.currentTarget) {
