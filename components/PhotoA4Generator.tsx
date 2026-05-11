@@ -320,6 +320,19 @@ const PhotoA4Generator: React.FC = () => {
         if (context) {
           await page.render({ canvasContext: context, viewport, canvas: canvas }).promise;
           const src = canvas.toDataURL('image/jpeg', 0.9);
+          const aspect = canvas.width / canvas.height;
+          let widthMm = 80;
+          let heightMm = 100;
+
+          // Ajusta a proporção do PDF para evitar distorções ou cortes
+          if (aspect > 1) {
+            widthMm = 80;
+            heightMm = Math.round(80 / aspect);
+          } else {
+            heightMm = 100;
+            widthMm = Math.round(100 * aspect);
+          }
+
           newPhotos.push({
             id: Math.random().toString(36).substr(2, 9),
             src,
@@ -327,10 +340,11 @@ const PhotoA4Generator: React.FC = () => {
             rotation: 0,
             posX: 0,
             posY: 0,
-            widthMm: 80,
-            heightMm: 100,
+            widthMm,
+            heightMm,
             brightness: 100,
-            contrast: 100
+            contrast: 100,
+            fitMode: 'contain'
           });
         }
       }
@@ -352,18 +366,38 @@ const PhotoA4Generator: React.FC = () => {
         const id = Math.random().toString(36).substr(2, 9);
         const src = event.target?.result as string;
         if (src) {
-          updatePhotosState(prev => [...prev, {
-            id,
-            src,
-            zoom: 1.0,
-            rotation: 0,
-            posX: 0,
-            posY: 0,
-            widthMm: 80,
-            heightMm: 100,
-            brightness: 100,
-            contrast: 100
-          }]);
+          const img = new Image();
+          img.onload = () => {
+            const aspect = img.width / img.height;
+            let widthMm = 80;
+            let heightMm = 100;
+
+            // Ajusta a largura ou altura proporcionalmente para manter a proporção original e evitar cortes
+            if (aspect > 1) {
+              // Paisagem (horizontal)
+              widthMm = 80;
+              heightMm = Math.round(80 / aspect);
+            } else {
+              // Retrato (vertical)
+              heightMm = 100;
+              widthMm = Math.round(100 * aspect);
+            }
+
+            updatePhotosState(prev => [...prev, {
+              id,
+              src,
+              zoom: 1.0,
+              rotation: 0,
+              posX: 0,
+              posY: 0,
+              widthMm,
+              heightMm,
+              brightness: 100,
+              contrast: 100,
+              fitMode: 'contain'
+            }]);
+          };
+          img.src = src;
         }
       };
       reader.readAsDataURL(file);
