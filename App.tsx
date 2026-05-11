@@ -12,7 +12,7 @@ import LabelGenerator from './components/LabelGenerator';
 import ResumeGenerator from './components/ResumeGenerator';
 import SignGenerator from './components/SignGenerator';
 import FinancialControl from './components/FinancialControl';
-import SalesCostCalculator from './components/SalesCostCalculator';
+import DedicationGenerator from './components/DedicationGenerator';
 import ReceiptGenerator from './components/ReceiptGenerator';
 
 const App: React.FC = () => {
@@ -90,8 +90,8 @@ const App: React.FC = () => {
         return <SignGenerator />;
       case AppView.FINANCIAL_CONTROL:
         return <FinancialControl />;
-      case AppView.SALES_COST:
-        return <SalesCostCalculator />;
+      case AppView.DEDICATION:
+        return <DedicationGenerator />;
       case AppView.RECEIPT_GENERATOR:
         return <ReceiptGenerator />;
       default:
