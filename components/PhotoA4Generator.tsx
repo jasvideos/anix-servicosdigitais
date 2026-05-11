@@ -1373,7 +1373,25 @@ const PhotoA4Generator: React.FC = () => {
 
       <div className="hidden print-area">
         {pages.map((page, pageIndex) => (
-          <div key={pageIndex} className="print-page">
+          <div 
+            key={pageIndex} 
+            className="print-page"
+            style={{
+              width: `${orientation === 'portrait' ? pageSize.w : pageSize.h}mm`,
+              height: `${orientation === 'portrait' ? pageSize.h : pageSize.w}mm`,
+              padding: `${marginMm}mm`,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: `${gapMm}mm`,
+              justifyContent: 'flex-start',
+              alignContent: 'flex-start',
+              boxSizing: 'border-box',
+              pageBreakAfter: 'always',
+              position: 'relative',
+              overflow: 'hidden',
+              backgroundColor: 'white'
+            }}
+          >
             {page.map(photo => renderPhotoContent(photo, true))}
           </div>
         ))}
