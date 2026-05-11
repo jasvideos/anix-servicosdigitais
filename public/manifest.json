@@ -12,5 +12,22 @@
       "sizes": "192x192 512x512",
       "type": "image/svg+xml"
     }
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "name": "Abrir Imagem com Anix",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "192x192 512x512",
+          "type": "image/svg+xml"
+        }
+      ],
+      "accept": {
+        "image/*": [".jpg", ".jpeg", ".png", ".webp", ".svg"],
+        "application/pdf": [".pdf"]
+      }
+    }
   ]
 }
