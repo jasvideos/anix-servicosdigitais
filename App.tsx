@@ -12,8 +12,13 @@ import LabelGenerator from './components/LabelGenerator';
 import ResumeGenerator from './components/ResumeGenerator';
 import SignGenerator from './components/SignGenerator';
 import FinancialControl from './components/FinancialControl';
+<<<<<<< HEAD
 import SalesCostCalculator from './components/SalesCostCalculator';
 import DedicationGenerator from './components/DedicationGenerator';
+=======
+import DedicationGenerator from './components/DedicationGenerator';
+import ReceiptGenerator from './components/ReceiptGenerator';
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.PHOTO_A4);
@@ -90,10 +95,17 @@ const App: React.FC = () => {
         return <SignGenerator />;
       case AppView.FINANCIAL_CONTROL:
         return <FinancialControl />;
+<<<<<<< HEAD
       case AppView.SALES_COST:
         return <SalesCostCalculator />;
       case AppView.DEDICATION:
         return <DedicationGenerator />;
+=======
+      case AppView.DEDICATION:
+        return <DedicationGenerator />;
+      case AppView.RECEIPT_GENERATOR:
+        return <ReceiptGenerator />;
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
       default:
         return <Dashboard onNavigate={setCurrentView} />;
     }

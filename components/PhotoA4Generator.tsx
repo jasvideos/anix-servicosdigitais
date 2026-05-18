@@ -3,8 +3,11 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { removeBackgroundAI } from '../services/geminiService';
 import * as pdfjsLib from 'pdfjs-dist';
+<<<<<<< HEAD
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
 
 // Configuração do worker do PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://esm.sh/pdfjs-dist@4.10.38/build/pdf.worker.mjs`;
@@ -13,8 +16,11 @@ interface PhotoItem {
   id: string;
   src: string;
   zoom: number;
+<<<<<<< HEAD
   zoomX?: number;
   zoomY?: number;
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
   rotation: number;
   posX: number;
   posY: number;
@@ -23,8 +29,11 @@ interface PhotoItem {
   brightness: number;
   contrast: number;
   fitMode?: 'cover' | 'contain' | 'fill';
+<<<<<<< HEAD
   flipX?: boolean;
   flipY?: boolean;
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
   isWordArt?: boolean;
   wordArtText?: string;
   wordArtStyle?: number;
@@ -171,13 +180,18 @@ const PhotoA4Generator: React.FC = () => {
   const [activeCropId, setActiveCropId] = useState<string | null>(null);
   const [cropBox, setCropBox] = useState<{ startX: number, startY: number, currX: number, currY: number, active: boolean } | null>(null);
 
+<<<<<<< HEAD
   const [hasBorder, setHasBorder] = useState(true);
+=======
+  const [hasBorder, setHasBorder] = useState(false);
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
   const [borderColor, setBorderColor] = useState('#334155');
   const [borderWidthMm, setBorderWidthMm] = useState(0.5);
 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, initialPosX: 0, initialPosY: 0 });
   const [resizingId, setResizingId] = useState<string | null>(null);
+<<<<<<< HEAD
   const [resizeStart, setResizeStart] = useState({ 
     x: 0, 
     y: 0, 
@@ -194,6 +208,10 @@ const PhotoA4Generator: React.FC = () => {
   const [isProcessingIA, setIsProcessingIA] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+=======
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, initialWidth: 0, initialHeight: 0 });
+  const [isProcessingIA, setIsProcessingIA] = useState(false);
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
 
   // New states for clipboard and context menu
   const [clipboard, setClipboard] = useState<PhotoItem[]>([]);
@@ -233,6 +251,7 @@ const PhotoA4Generator: React.FC = () => {
             
             <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-[9px] font-bold text-slate-300">Zoom</span>
+<<<<<<< HEAD
               <button 
                 onClick={() => updatePhotosState((photos:any) => photos.map((p:any)=>selectedIds.includes(p.id)?{...p,zoom:Math.max(0.1, (p.zoom || 1) - 0.05)}:p))}
                 className="w-4 h-4 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
@@ -242,10 +261,14 @@ const PhotoA4Generator: React.FC = () => {
                 onClick={() => updatePhotosState((photos:any) => photos.map((p:any)=>selectedIds.includes(p.id)?{...p,zoom:Math.min(10, (p.zoom || 1) + 0.05)}:p))}
                 className="w-4 h-4 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
               ><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg></button>
+=======
+              <input type="range" min="0.1" max="10" step="0.01" value={firstSelected?.zoom || 1} onChange={(e) => updatePhotosState((photos:any) => photos.map((p:any)=>selectedIds.includes(p.id)?{...p,zoom:Number(e.target.value)}:p))} className="w-16 accent-indigo-500" />
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-[9px] font-bold text-slate-300">Brilho</span>
+<<<<<<< HEAD
               <button 
                 onClick={() => updatePhotosState((photos:any) => photos.map((p:any)=>selectedIds.includes(p.id)?{...p,brightness:Math.max(0, (p.brightness ?? 100) - 5)}:p))}
                 className="w-4 h-4 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
@@ -255,6 +278,9 @@ const PhotoA4Generator: React.FC = () => {
                 onClick={() => updatePhotosState((photos:any) => photos.map((p:any)=>selectedIds.includes(p.id)?{...p,brightness:Math.min(200, (p.brightness ?? 100) + 5)}:p))}
                 className="w-4 h-4 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
               ><svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg></button>
+=======
+              <input type="range" min="0" max="200" step="1" value={firstSelected?.brightness || 100} onChange={(e) => updatePhotosState((photos:any) => photos.map((p:any)=>selectedIds.includes(p.id)?{...p,brightness:Number(e.target.value)}:p))} className="w-16 accent-indigo-500" />
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
@@ -294,6 +320,10 @@ const PhotoA4Generator: React.FC = () => {
   ) : null;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+<<<<<<< HEAD
+=======
+  const workspaceRef = useRef<HTMLDivElement | null>(null);
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
     const mmToPxPreview = 2.8; // Escala visual aumentada
 
   const pages = useMemo(() => {
@@ -356,6 +386,7 @@ const PhotoA4Generator: React.FC = () => {
         if (context) {
           await page.render({ canvasContext: context, viewport, canvas: canvas }).promise;
           const src = canvas.toDataURL('image/jpeg', 0.9);
+<<<<<<< HEAD
           let w = canvas.width;
           let h = canvas.height;
           const MAX_SIZE = 150;
@@ -366,6 +397,21 @@ const PhotoA4Generator: React.FC = () => {
              w = (w / h) * MAX_SIZE;
              h = MAX_SIZE;
           }
+=======
+          const aspect = canvas.width / canvas.height;
+          let widthMm = 80;
+          let heightMm = 100;
+
+          // Ajusta a proporção do PDF para evitar distorções ou cortes
+          if (aspect > 1) {
+            widthMm = 80;
+            heightMm = Math.round(80 / aspect);
+          } else {
+            heightMm = 100;
+            widthMm = Math.round(100 * aspect);
+          }
+
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
           newPhotos.push({
             id: Math.random().toString(36).substr(2, 9),
             src,
@@ -373,8 +419,13 @@ const PhotoA4Generator: React.FC = () => {
             rotation: 0,
             posX: 0,
             posY: 0,
+<<<<<<< HEAD
             widthMm: Math.round(w),
             heightMm: Math.round(h),
+=======
+            widthMm,
+            heightMm,
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
             brightness: 100,
             contrast: 100,
             fitMode: 'contain'
@@ -399,6 +450,7 @@ const PhotoA4Generator: React.FC = () => {
         const id = Math.random().toString(36).substr(2, 9);
         const src = event.target?.result as string;
         if (src) {
+<<<<<<< HEAD
            const img = new Image();
            img.onload = () => {
              let w = img.width;
@@ -426,6 +478,49 @@ const PhotoA4Generator: React.FC = () => {
              }]);
            };
            img.src = src;
+=======
+          const img = new Image();
+          img.onload = () => {
+            const aspect = img.width / img.height;
+            
+            // Calcula o tamanho em milímetros baseado em um padrão de 300 DPI para impressão de alta resolução
+            const dpi = 300;
+            let widthMm = Math.round((img.width / dpi) * 25.4);
+            let heightMm = Math.round((img.height / dpi) * 25.4);
+
+            // Garante que a imagem caiba inteira dentro da folha inicialmente, sem passar dos limites da página
+            const maxW = (orientation === 'portrait' ? pageSize.w : pageSize.h) - (marginMm * 2) - 2;
+            const maxH = (orientation === 'portrait' ? pageSize.h : pageSize.w) - (marginMm * 2) - 2;
+
+            if (widthMm > maxW) {
+              widthMm = maxW;
+              heightMm = Math.round(maxW / aspect);
+            }
+            if (heightMm > maxH) {
+              heightMm = maxH;
+              widthMm = Math.round(maxH * aspect);
+            }
+
+            // Garante tamanhos mínimos válidos
+            widthMm = Math.max(15, widthMm);
+            heightMm = Math.max(15, heightMm);
+
+            updatePhotosState(prev => [...prev, {
+              id,
+              src,
+              zoom: 1.0,
+              rotation: 0,
+              posX: 0,
+              posY: 0,
+              widthMm,
+              heightMm,
+              brightness: 100,
+              contrast: 100,
+              fitMode: 'contain'
+            }]);
+          };
+          img.src = src;
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         }
       };
       reader.readAsDataURL(file);
@@ -523,14 +618,19 @@ const PhotoA4Generator: React.FC = () => {
             let drawY = 0;
             
             const imgRatio = img.width / img.height;
+<<<<<<< HEAD
             const isRotated = (photo.rotation || 0) % 180 !== 0;
             const targetW = isRotated ? rect.height : rect.width;
             const targetH = isRotated ? rect.width : rect.height;
             const rectRatio = targetW / targetH;
+=======
+            const rectRatio = rect.width / rect.height;
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
             const fitMode = photo.fitMode || 'contain';
             
             if (fitMode === 'cover') {
                if (imgRatio > rectRatio) {
+<<<<<<< HEAD
                    drawH = targetH;
                    drawW = img.width * (targetH / img.height);
                } else {
@@ -552,6 +652,29 @@ const PhotoA4Generator: React.FC = () => {
             
             drawX = -drawW / 2;
             drawY = -drawH / 2;
+=======
+                   drawH = rect.height;
+                   drawW = img.width * (rect.height / img.height);
+               } else {
+                   drawW = rect.width;
+                   drawH = img.height * (rect.width / img.width);
+               }
+            } else if (fitMode === 'fill') {
+               drawW = rect.width;
+               drawH = rect.height;
+            } else {
+               if (imgRatio > rectRatio) {
+                   drawW = rect.width;
+                   drawH = img.height * (rect.width / img.width);
+               } else {
+                   drawH = rect.height;
+                   drawW = img.width * (rect.height / img.height);
+               }
+            }
+            
+            drawX = (rect.width - drawW) / 2;
+            drawY = (rect.height - drawH) / 2;
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
             
             ctx.save();
             ctx.scale(dpi, dpi);
@@ -559,6 +682,10 @@ const PhotoA4Generator: React.FC = () => {
             ctx.translate(photo.posX || 0, photo.posY || 0);
             ctx.rotate((photo.rotation || 0) * Math.PI / 180);
             ctx.scale(photo.zoom || 1, photo.zoom || 1);
+<<<<<<< HEAD
+=======
+            ctx.translate(-rect.width/2, -rect.height/2);
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
             
             ctx.drawImage(img, drawX, drawY, drawW, drawH);
             ctx.restore();
@@ -622,6 +749,7 @@ const PhotoA4Generator: React.FC = () => {
              setClipboard(photos.filter(p => selectedIds.includes(p.id)));
              navigator.clipboard.writeText('anix-internal-copy').catch(() => {});
           }
+<<<<<<< HEAD
         } else if (e.key === 'z' || e.key === 'Z') {
           e.preventDefault();
           if (e.shiftKey) {
@@ -629,6 +757,8 @@ const PhotoA4Generator: React.FC = () => {
           } else {
              handleUndo();
           }
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedIds.length > 0) {
@@ -684,7 +814,39 @@ const PhotoA4Generator: React.FC = () => {
       window.removeEventListener('paste', handleSystemPaste);
       window.removeEventListener('click', handleClickOutside);
     };
+<<<<<<< HEAD
   }, [photos, selectedIds, clipboard, contextMenu.visible, history]);
+=======
+  }, [photos, selectedIds, clipboard, contextMenu.visible]);
+
+  // Intercepta o evento 'wheel' com { passive: false } no workspace para evitar o scroll nativo da página ao dar zoom livre
+  useEffect(() => {
+    const el = workspaceRef.current;
+    if (!el) return;
+
+    const handleWheelNative = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      const photoEl = target.closest('[id^="photo-"]');
+      if (photoEl) {
+        const id = photoEl.id.replace('photo-', '');
+        if (selectedIds.includes(id)) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const zoomDelta = e.deltaY < 0 ? 0.05 : -0.05;
+          updatePhotosState((currentPhotos: any) => 
+            currentPhotos.map((p: any) => p.id === id ? { ...p, zoom: Math.max(0.1, Math.min(10, (p.zoom || 1) + zoomDelta)) } : p)
+          );
+        }
+      }
+    };
+
+    el.addEventListener('wheel', handleWheelNative, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheelNative);
+    };
+  }, [selectedIds]);
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
 
   const handlePhotoMouseDown = (e: React.MouseEvent, photoId: string) => {
     if (e.button === 2) {
@@ -694,6 +856,7 @@ const PhotoA4Generator: React.FC = () => {
       }
     } else {
       const photo = photos.find(p => p.id === photoId);
+<<<<<<< HEAD
       if (photo) {
         if (e.altKey && !selectedIds.includes(photoId)) {
            // Ignora alt se vier de várias seleções simultâneas para evitar comportamento bizarro,
@@ -712,6 +875,9 @@ const PhotoA4Generator: React.FC = () => {
            handleDragStart(e, photo);
         }
       }
+=======
+      if (photo) handleDragStart(e, photo);
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
     }
   };
 
@@ -795,6 +961,7 @@ const PhotoA4Generator: React.FC = () => {
     }));
   };
 
+<<<<<<< HEAD
   const fillPageWithSelected = () => {
     if (selectedIds.length === 0) return;
     
@@ -833,6 +1000,8 @@ const PhotoA4Generator: React.FC = () => {
      }
   };
 
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
   const duplicateSelected = () => {
     if (selectedIds.length === 0) return;
     const itemsToDuplicate = photos.filter(p => selectedIds.includes(p.id));
@@ -878,11 +1047,16 @@ const PhotoA4Generator: React.FC = () => {
 
   const handleGlobalEnd = () => setDraggingId(null);
 
+<<<<<<< HEAD
   const handleResizeStart = (e: React.MouseEvent | React.TouchEvent, photo: PhotoItem, handle: 'br' | 'tl' | 'tr' | 'bl') => {
+=======
+  const handleResizeStart = (e: React.MouseEvent | React.TouchEvent, photo: PhotoItem) => {
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
     e.stopPropagation();
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
     setResizingId(photo.id);
+<<<<<<< HEAD
     
     const container = (e.currentTarget as HTMLElement).parentElement;
     let centerX = 0;
@@ -911,12 +1085,16 @@ const PhotoA4Generator: React.FC = () => {
       initialZoomX: photo.zoomX ?? photo.zoom ?? 1,
       initialZoomY: photo.zoomY ?? photo.zoom ?? 1
     });
+=======
+    setResizeStart({ x: clientX, y: clientY, initialWidth: photo.widthMm, initialHeight: photo.heightMm });
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
   };
 
   const handleGlobalResizeMove = (e: MouseEvent | TouchEvent) => {
     if (!resizingId) return;
     const clientX = (e instanceof MouseEvent) ? e.clientX : (e as TouchEvent).touches[0].clientX;
     const clientY = (e instanceof MouseEvent) ? e.clientY : (e as TouchEvent).touches[0].clientY;
+<<<<<<< HEAD
     
     const currentDistanceX = Math.abs(clientX - resizeStart.centerX);
     const currentDistanceY = Math.abs(clientY - resizeStart.centerY);
@@ -931,6 +1109,15 @@ const PhotoA4Generator: React.FC = () => {
             zoomX: Math.max(0.1, Math.min(10, newZoomX)),
             zoomY: Math.max(0.1, Math.min(10, newZoomY))
           } 
+=======
+    const deltaX = (clientX - resizeStart.x) / mmToPxPreview;
+    const deltaY = (clientY - resizeStart.y) / mmToPxPreview;
+    
+    // We update widthMm / heightMm
+    updatePhotosState(prev => prev.map(p => 
+      p.id === resizingId 
+        ? { ...p, widthMm: Math.max(10, resizeStart.initialWidth + deltaX), heightMm: Math.max(10, resizeStart.initialHeight + deltaY) } 
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         : p
     ));
   };
@@ -962,11 +1149,19 @@ const PhotoA4Generator: React.FC = () => {
     };
   }, [draggingId, dragStart, resizingId, resizeStart]);
 
+<<<<<<< HEAD
   const generatePageCanvas = async (pageIndex: number) => {
     const dpiFactor = 11.811; // 300 DPI
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
+=======
+  const saveAsPNG = async (pageIndex: number) => {
+    const dpiFactor = 11.811; // 300 DPI
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
 
     const w = (orientation === 'portrait' ? pageSize.w : pageSize.h) * dpiFactor;
     const h = (orientation === 'portrait' ? pageSize.h : pageSize.w) * dpiFactor;
@@ -981,6 +1176,7 @@ const PhotoA4Generator: React.FC = () => {
     for (const photo of pagePhotos) {
       const pW = photo.widthMm * dpiFactor;
       const pH = (isPolaroid ? photo.widthMm * POLAROID_HEIGHT_RATIO : (isRound ? photo.widthMm : photo.heightMm)) * dpiFactor;
+<<<<<<< HEAD
       
       const isFullBleed = photo.widthMm >= (orientation === 'portrait' ? pageSize.w : pageSize.h) - 1 && 
                           photo.heightMm >= (orientation === 'portrait' ? pageSize.h : pageSize.w) - 1;
@@ -1005,6 +1201,15 @@ const PhotoA4Generator: React.FC = () => {
       ctx.translate(drawX, drawY);
 
       if (isRound && !photo.isTextNode) {
+=======
+      if (currentX + pW > (w - marginMm * dpiFactor + 1)) { currentX = marginMm * dpiFactor; currentY += currentRowHeight + (gapMm * dpiFactor); currentRowHeight = 0; }
+      const img = new Image(); img.src = photo.src;
+      await new Promise<void>(resolve => { img.onload = () => resolve(); });
+      ctx.save();
+      ctx.translate(currentX, currentY);
+
+      if (isRound) {
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         ctx.beginPath();
         ctx.arc(pW/2, pH/2, Math.min(pW, pH)/2, 0, Math.PI * 2);
         ctx.clip();
@@ -1013,7 +1218,11 @@ const PhotoA4Generator: React.FC = () => {
       if (isPolaroid) {
         ctx.fillStyle = 'white'; ctx.fillRect(0, 0, pW, pH);
         ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 0.4 * dpiFactor; ctx.strokeRect(0, 0, pW, pH);
+<<<<<<< HEAD
       } else if (hasBorder && !photo.isTextNode) {
+=======
+      } else if (hasBorder) {
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         if (isRound) {
           ctx.beginPath();
           ctx.arc(pW/2, pH/2, Math.min(pW, pH)/2, 0, Math.PI * 2);
@@ -1024,6 +1233,7 @@ const PhotoA4Generator: React.FC = () => {
           ctx.strokeStyle = borderColor; ctx.lineWidth = borderWidthMm * dpiFactor; ctx.strokeRect(0, 0, pW, pH);
         }
       }
+<<<<<<< HEAD
       
       if (!photo.isTextNode) {
          const clipX = isPolaroid ? (pW * POLAROID_SIDE_MARGIN_RATIO) : 0;
@@ -1086,12 +1296,47 @@ const PhotoA4Generator: React.FC = () => {
   const saveAsPNG = async (pageIndex: number) => {
     const canvas = await generatePageCanvas(pageIndex);
     if (!canvas) return;
+=======
+      const clipX = isPolaroid ? (pW * POLAROID_SIDE_MARGIN_RATIO) : 0;
+      const clipY = isPolaroid ? (pW * POLAROID_TOP_MARGIN_RATIO) : 0;
+      const clipW = isPolaroid ? pW - (pW * POLAROID_SIDE_MARGIN_RATIO * 2) : pW;
+      const clipH = isPolaroid ? pH - (pW * POLAROID_TOP_MARGIN_RATIO) - (pH * POLAROID_BOTTOM_MARGIN_RATIO) : pH;
+      ctx.save(); ctx.beginPath(); ctx.rect(clipX, clipY, clipW, clipH); ctx.clip();
+      
+      const imgRatio = img.width / img.height;
+      const clipRatio = clipW / clipH;
+      let drawW, drawH;
+      if (imgRatio > clipRatio) { drawW = clipW; drawH = clipW / imgRatio; } else { drawH = clipH; drawW = clipH * imgRatio; }
+      
+      const centerX = clipX + (clipW / 2); const centerY = clipY + (clipH / 2);
+      ctx.translate(centerX + (photo.posX * (dpiFactor / mmToPxPreview)), centerY + (photo.posY * (dpiFactor / mmToPxPreview)));
+      ctx.rotate((photo.rotation * Math.PI) / 180);
+      ctx.scale(photo.zoom, photo.zoom);
+      
+      // Apply filters
+      if (ctx.filter) {
+        ctx.filter = `brightness(${photo.brightness || 100}%) contrast(${photo.contrast || 100}%)`;
+      }
+      
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+      
+      // Reset filter
+      if (ctx.filter) {
+        ctx.filter = 'none';
+      }
+      
+      ctx.restore(); ctx.restore();
+      currentX += pW + (gapMm * dpiFactor);
+      currentRowHeight = Math.max(currentRowHeight, pH);
+    }
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
     const link = document.createElement('a');
     link.download = `Anix_Folha_${pageIndex + 1}.png`;
     link.href = canvas.toDataURL('image/png', 1.0);
     link.click();
   };
 
+<<<<<<< HEAD
   const exportToPdf = async () => {
     if (pages.length === 0) return;
     setIsGeneratingPdf(true);
@@ -1120,11 +1365,14 @@ const PhotoA4Generator: React.FC = () => {
     }
   };
 
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
   const renderPhotoContent = (photo: PhotoItem, isPrint: boolean) => {
     const factor = isPrint ? 1 : mmToPxPreview;
     const unit = isPrint ? 'mm' : 'px';
     const width = photo.widthMm * factor;
     const height = (isPolaroid ? photo.widthMm * POLAROID_HEIGHT_RATIO : (isRound ? photo.widthMm : photo.heightMm)) * factor;
+<<<<<<< HEAD
     
     const pageW = orientation === 'portrait' ? pageSize.w : pageSize.h;
     const pageH = orientation === 'portrait' ? pageSize.h : pageSize.w;
@@ -1134,18 +1382,31 @@ const PhotoA4Generator: React.FC = () => {
     const marginLeft = isFullBleed ? `-${marginMm}${unit}` : '0';
     const marginTop = isFullBleed ? `-${marginMm}${unit}` : '0';
 
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
     return (
       <div key={photo.id} id={"photo-" + photo.id}
         onMouseDown={!isPrint && activeCropId !== photo.id ? (e) => handlePhotoMouseDown(e, photo.id) : undefined}
         onTouchStart={!isPrint ? (e) => handleDragStart(e, photo) : undefined}
         onContextMenu={(e) => { e.preventDefault(); if (!activeCropId) handleContextMenu(e, photo.id); }}
+<<<<<<< HEAD
+=======
+        onDoubleClick={!isPrint ? () => {
+          updatePhotosState((currentPhotos: any) => 
+            currentPhotos.map((p: any) => p.id === photo.id ? { ...p, zoom: 1.0, posX: 0, posY: 0 } : p)
+          );
+        } : undefined}
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         style={{ 
           width: `${width}${unit}`, 
           height: `${height}${unit}`, 
           position: photo.isTextNode ? 'absolute' : 'relative', 
           transform: photo.isTextNode ? `translate(${photo.posX || 0}px, ${photo.posY || 0}px)` : 'none',
+<<<<<<< HEAD
           marginLeft,
           marginTop,
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
           border: isPolaroid ? `${0.4 * factor}${unit} solid #cbd5e1` : (hasBorder && !isRound && !photo.isTextNode ? `${borderWidthMm * factor}${unit} solid ${borderColor}` : 'none'), 
           boxSizing: 'border-box', 
           overflow: photo.isTextNode ? 'visible' : 'hidden', 
@@ -1154,7 +1415,11 @@ const PhotoA4Generator: React.FC = () => {
           borderRadius: isRound && !photo.isTextNode ? '50%' : '0',
           zIndex: photo.isTextNode ? 30 : 10
         }}
+<<<<<<< HEAD
         className={`cursor-move select-none ${!isPrint && selectedIds.includes(photo.id) ? 'ring-4 ring-blue-500 ring-inset shadow-2xl scale-[1.02]' : ''}`}>
+=======
+        className={`transition-all cursor-move select-none ${!isPrint && selectedIds.includes(photo.id) ? 'ring-4 ring-blue-500 ring-inset shadow-2xl scale-[1.02]' : ''}`}>
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         
         {photo.isWordArt && <div className="absolute inset-0 z-0 bg-[#ffffff]"></div>}
         
@@ -1165,6 +1430,7 @@ const PhotoA4Generator: React.FC = () => {
         ) : photo.src.startsWith('<svg') ? (
           <div dangerouslySetInnerHTML={{ __html: photo.src }} className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10" style={{ transform: `scale(${photo.zoom || 1}) translate(${(photo.posX || 0)}px, ${(photo.posY || 0)}px) rotate(${photo.rotation || 0}deg)`, transformOrigin: 'center' }} />
         ) : (
+<<<<<<< HEAD
            <div 
              className="absolute pointer-events-none z-10 overflow-hidden"
              style={{ 
@@ -1207,6 +1473,20 @@ const PhotoA4Generator: React.FC = () => {
                 );
              })()}
            </div>
+=======
+           <img 
+             src={photo.src} 
+             alt="photo" 
+             draggable={false}
+             className="absolute inset-0 w-full h-full pointer-events-none z-10" 
+             style={{ 
+               objectFit: photo.fitMode || 'cover', 
+               transform: `scale(${photo.zoom || 1}) translate(${(photo.posX || 0)}px, ${(photo.posY || 0)}px) rotate(${photo.rotation || 0}deg)`,
+               transformOrigin: 'center',
+               filter: `brightness(${photo.brightness ?? 100}%) contrast(${photo.contrast ?? 100}%)`
+             }} 
+           />
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         )}
 
         {isPolaroid && (
@@ -1266,6 +1546,7 @@ const PhotoA4Generator: React.FC = () => {
            </div>
         )}
 
+<<<<<<< HEAD
         {/* RESIZE HANDLES */}
         {!isPrint && selectedIds.includes(photo.id) && !activeCropId && (
           <>
@@ -1275,12 +1556,44 @@ const PhotoA4Generator: React.FC = () => {
             <div style={{ position: 'absolute', left: 0, bottom: 0, width: '12px', height: '12px', backgroundColor: '#3b82f6', cursor: 'sw-resize', zIndex: 9999, borderRadius: '2px' }} onMouseDown={(e) => handleResizeStart(e, photo, 'bl')} />
           </>
         )}
+=======
+         {/* DICA DE ZOOM LIVRE (SCROLL) */}
+         {!isPrint && selectedIds.includes(photo.id) && !photo.isTextNode && (
+            <div className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-[8px] text-white font-extrabold px-1.5 py-0.5 rounded pointer-events-none z-50 shadow select-none uppercase tracking-wider animate-pulse">
+              🖱️ Scroll = Zoom Livre | dblclick = Reset
+            </div>
+         )}
+
+         {/* RESIZE HANDLE */}
+         {!isPrint && selectedIds.includes(photo.id) && !photo.isTextNode && (
+            <div 
+              onMouseDown={(e) => handleResizeStart(e, photo)}
+              onTouchStart={(e) => handleResizeStart(e, photo)}
+              style={{
+                position: 'absolute',
+                bottom: '3px',
+                right: '3px',
+                width: '14px',
+                height: '14px',
+                backgroundColor: '#3b82f6',
+                border: '2px solid #ffffff',
+                borderRadius: '50%',
+                cursor: 'se-resize',
+                zIndex: 50,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+              }}
+              className="hover:scale-125 transition-transform"
+              title="Redimensionamento Livre (Arraste para redimensionar)"
+            />
+         )}
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
       </div>
     );
   };
 
   return (
     <div className="flex w-full h-[calc(100vh-64px)] overflow-hidden bg-slate-200 font-sans text-slate-900 border-t border-slate-300">
+<<<<<<< HEAD
       <style>
         {`@media print {
             @page {
@@ -1289,6 +1602,8 @@ const PhotoA4Generator: React.FC = () => {
             }
         }`}
       </style>
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
       
       {/* SIDEBAR ESQUERDA */}
       <div 
@@ -1325,6 +1640,7 @@ const PhotoA4Generator: React.FC = () => {
                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1.5 opacity-90 group-hover:opacity-100 group-active:scale-95 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                  <span className="text-[9px] font-black uppercase tracking-wider">WordArt</span>
               </button>
+<<<<<<< HEAD
               <button onClick={() => exportToPdf()} disabled={isGeneratingPdf} className="flex flex-col items-center justify-center p-3 rounded-xl bg-indigo-400 hover:bg-indigo-500 text-white shadow-sm transition-all shadow-indigo-400/20 w-full group disabled:opacity-50">
                  {isGeneratingPdf ? (
                     <svg className="animate-spin h-6 w-6 mb-1.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -1332,6 +1648,11 @@ const PhotoA4Generator: React.FC = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1.5 opacity-90 group-hover:opacity-100 group-active:scale-95 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                  )}
                  <span className="text-[9px] font-black uppercase tracking-wider">{isGeneratingPdf ? 'Gerando...' : 'Baixar PDF'}</span>
+=======
+              <button onClick={() => window.print()} className="flex flex-col items-center justify-center p-3 rounded-xl bg-indigo-400 hover:bg-indigo-500 text-white shadow-sm transition-all shadow-indigo-400/20 w-full group">
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1.5 opacity-90 group-hover:opacity-100 group-active:scale-95 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                 <span className="text-[9px] font-black uppercase tracking-wider">Imprimir</span>
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
               </button>
            </div>
            
@@ -1352,6 +1673,7 @@ const PhotoA4Generator: React.FC = () => {
                         <input type="number" disabled={selectedIds.length === 0 || isPolaroid} value={firstSelected?.heightMm || 100} onChange={(e) => updatePhotos({ heightMm: Number(e.target.value) })} className="w-14 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-[10px] font-bold text-center text-blue-700 disabled:opacity-50" />
                      </div>
                      {!isPolaroid && selectedIds.length > 0 && (
+<<<<<<< HEAD
                         <div className="flex flex-wrap gap-1 mt-1">
                            {[ {l:"3x4", w:30, h:40}, {l:"A6", w:105, h:148}, {l:"A5", w:148, h:210}, {l:"A4", w:210, h:297} ].map(size => (
                              <button 
@@ -1366,6 +1688,14 @@ const PhotoA4Generator: React.FC = () => {
                                  };
                                }))}
                                className="flex-1 min-w-[32px] text-[9px] bg-white border border-slate-200 text-slate-500 py-1 px-1 rounded hover:bg-slate-100 font-bold text-center"
+=======
+                        <div className="grid grid-cols-4 gap-1 mt-1">
+                           {[ {l:"A6", w:105, h:148}, {l:"A5", w:148, h:210}, {l:"A4", w:210, h:297}, {l:"A3", w:297, h:420} ].map(size => (
+                             <button 
+                               key={size.l} 
+                               onClick={() => updatePhotos({ widthMm: size.w, heightMm: size.h })}
+                               className="text-[9px] bg-white border border-slate-200 text-slate-500 py-1 rounded hover:bg-slate-100 font-bold"
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
                              >
                                {size.l}
                              </button>
@@ -1403,7 +1733,11 @@ const PhotoA4Generator: React.FC = () => {
 
                {/* GROUP: AÇÕES */}
                <div className="toolbar-group">
+<<<<<<< HEAD
                  <div className="toolbar-group-title">Ações</div>
+=======
+                 <div className="toolbar-group-title">Ações ({selectedIds.length})</div>
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
                  <div className="flex flex-col gap-1.5">
                     <button onClick={handleRemoveBackground} disabled={selectedIds.length === 0 || isProcessingIA} className="w-full bg-purple-100 border border-purple-200 text-purple-700 hover:bg-purple-200 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center justify-center disabled:opacity-40 transition-colors relative">
                        {isProcessingIA && <span className="absolute inset-0 bg-white/50 animate-pulse rounded-xl"></span>}
@@ -1411,6 +1745,7 @@ const PhotoA4Generator: React.FC = () => {
                        <span className="z-10">{isProcessingIA ? "PROCESSANDO..." : "REMOVER FUNDO (IA)"}</span>
                     </button>
                     <div className="grid grid-cols-2 gap-1.5">
+<<<<<<< HEAD
                        <button onClick={duplicateSelected} disabled={selectedIds.length === 0} className="bg-slate-800 text-white hover:bg-slate-700 py-1.5 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider flex items-center justify-center disabled:opacity-40 transition-colors">
                          👯<span className="ml-1 shrink-0">Duplicar</span>
                        </button>
@@ -1422,6 +1757,13 @@ const PhotoA4Generator: React.FC = () => {
                        </button>
                        <button onClick={clearAll} disabled={photos.length === 0} className="bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 py-1.5 rounded-lg text-[8px] sm:text-[9px] font-bold uppercase tracking-wider flex items-center justify-center disabled:opacity-40 transition-colors">
                          🧹<span className="ml-1 shrink-0">Limpar</span>
+=======
+                       <button onClick={duplicateSelected} disabled={selectedIds.length === 0} className="bg-slate-800 text-white hover:bg-black py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center justify-center disabled:opacity-40 transition-colors">
+                         👯<span className="ml-1">Duplicar</span>
+                       </button>
+                       <button onClick={removeSelected} disabled={selectedIds.length === 0} className="bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center justify-center disabled:opacity-40 transition-colors">
+                         🗑️<span className="ml-1">Excluir</span>
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
                        </button>
                     </div>
                  </div>
@@ -1445,10 +1787,13 @@ const PhotoA4Generator: React.FC = () => {
                       </label>
                       <input type="range" min="0" max="200" disabled={selectedIds.length === 0} value={firstSelected?.contrast ?? 100} onChange={(e) => updatePhotos({ contrast: Number(e.target.value) })} className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
                     </div>
+<<<<<<< HEAD
                     <div className="flex gap-2 mt-2">
                        <button onClick={() => updatePhotos({ flipX: !firstSelected?.flipX })} disabled={selectedIds.length === 0} className={`flex-1 text-[9px] font-bold py-1.5 rounded-lg border transition-colors ${firstSelected?.flipX ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-50'}`}>↔️ Espelhar H</button>
                        <button onClick={() => updatePhotos({ flipY: !firstSelected?.flipY })} disabled={selectedIds.length === 0} className={`flex-1 text-[9px] font-bold py-1.5 rounded-lg border transition-colors ${firstSelected?.flipY ? 'bg-blue-100 border-blue-300 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 disabled:opacity-50'}`}>↕️ Espelhar V</button>
                     </div>
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
                  </div>
                </div>
 
@@ -1542,12 +1887,18 @@ const PhotoA4Generator: React.FC = () => {
       </div>
       {/* WORKSPACE PREVIEW AREA */}
       <div 
+<<<<<<< HEAD
         className={`flex-1 flex flex-col gap-6 no-print overflow-y-auto custom-scrollbar p-6 relative transition-colors ${isDraggingOver ? 'bg-indigo-50/50' : 'bg-slate-100/50'}`}
+=======
+        ref={workspaceRef}
+        className="flex-1 flex flex-col gap-6 no-print overflow-y-auto custom-scrollbar p-6 bg-slate-100/50"
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         onContextMenu={(e) => {
           if (e.target === e.currentTarget) {
             handleContextMenu(e);
           }
         }}
+<<<<<<< HEAD
         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingOver(true); }}
         onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingOver(false); }}
         onDrop={(e) => {
@@ -1567,6 +1918,9 @@ const PhotoA4Generator: React.FC = () => {
                 </div>
             </div>
         )}
+=======
+      >
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         <div className="sticky top-0 z-30 w-full flex justify-center pointer-events-none">
            <div className="bg-slate-900/80 backdrop-blur text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border border-white/10 pointer-events-auto flex items-center gap-4">
               <span>Arraste e gire para enquadrar ({photos.length} fotos)</span>
@@ -1608,6 +1962,7 @@ const PhotoA4Generator: React.FC = () => {
 
       <div className="hidden print-area">
         {pages.map((page, pageIndex) => (
+<<<<<<< HEAD
           <div key={pageIndex} className="print-page" style={{ 
             width: `${orientation === 'portrait' ? pageSize.w : pageSize.h}mm`, 
             height: `${orientation === 'portrait' ? pageSize.h : pageSize.w}mm`, 
@@ -1620,6 +1975,27 @@ const PhotoA4Generator: React.FC = () => {
             pageBreakAfter: 'always',
             boxSizing: 'border-box'
           }}>
+=======
+          <div 
+            key={pageIndex} 
+            className="print-page"
+            style={{
+              width: `${orientation === 'portrait' ? pageSize.w : pageSize.h}mm`,
+              height: `${orientation === 'portrait' ? pageSize.h : pageSize.w}mm`,
+              padding: `${marginMm}mm`,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: `${gapMm}mm`,
+              justifyContent: 'flex-start',
+              alignContent: 'flex-start',
+              boxSizing: 'border-box',
+              pageBreakAfter: 'always',
+              position: 'relative',
+              overflow: 'hidden',
+              backgroundColor: 'white'
+            }}
+          >
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
             {page.map(photo => renderPhotoContent(photo, true))}
           </div>
         ))}
@@ -1716,6 +2092,7 @@ const PhotoA4Generator: React.FC = () => {
             Excluir imagem selecionada
           </button>
           <button 
+<<<<<<< HEAD
             onClick={() => { 
                 updatePhotosState((photos: any) => photos.map((p: any) => selectedIds.includes(p.id) ? { 
                   ...p, 
@@ -1725,6 +2102,9 @@ const PhotoA4Generator: React.FC = () => {
                 } : p));
                 setContextMenu(prev => ({ ...prev, visible: false })); 
             }}  
+=======
+            onClick={() => { updatePhotos({ rotation: (firstSelected?.rotation || 0) + 90 }); setContextMenu(prev => ({ ...prev, visible: false })); }} 
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
             disabled={selectedIds.length === 0}
             className="w-full text-left px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center gap-3 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >

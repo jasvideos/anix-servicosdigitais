@@ -10,7 +10,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
+<<<<<<< HEAD
       includeAssets: ['icon.svg'],
+=======
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
       manifest: {
         name: 'Anix - Gerador A4',
         short_name: 'Anix',
@@ -19,7 +23,11 @@ export default defineConfig({
         icons: [
           {
             src: 'icon.svg',
+<<<<<<< HEAD
             sizes: '192x192 512x512',
+=======
+            sizes: '512x512',
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
             type: 'image/svg+xml',
             purpose: 'any maskable'
           }
@@ -33,10 +41,13 @@ export default defineConfig({
             }
           }
         ]
+<<<<<<< HEAD
       },
       devOptions: {
         enabled: true,
         type: 'module',
+=======
+>>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
       }
     })
   ],

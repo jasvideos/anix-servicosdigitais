@@ -16,34 +16,36 @@ async function startServer() {
         return res.status(400).json({ error: "Missing imageSource" });
       }
 
-      const apiKey = process.env.GEMINI_API_KEY || "";
-      const ai = new GoogleGenAI({ apiKey });
+      const apiKey = process.env.BG_REMOVE_API_KEY || "";
+      if (!apiKey) {
+        return res.status(500).json({ error: "Background removal API key not configured." });
+      }
 
       const cleanBase64 = imageSource.includes(',') ? imageSource.split(',')[1] : imageSource;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: {
-          parts: [
-            { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } }, 
-            { text: 'Remove the background and return only the subject on pure transparent white background. Return only the image data.' }
-          ]
-        }
+      const response = await fetch("https://api.remove.bg/v1.0/removebg", {
+        method: "POST",
+        headers: {
+          "X-Api-Key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image_file_b64: cleanBase64,
+          size: "auto",
+        }),
       });
 
-      let bgRemovedImage = null;
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-          bgRemovedImage = `data:image/png;base64,${part.inlineData.data}`;
-          break;
-        }
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error from remove.bg:", errorText);
+        return res.status(response.status).json({ error: errorText });
       }
 
-      if (bgRemovedImage) {
-        res.json({ result: bgRemovedImage });
-      } else {
-        res.status(500).json({ error: "Failed to remove background." });
-      }
+      const arrayBuffer = await response.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const bgRemovedImage = `data:image/png;base64,${base64}`;
+
+      res.json({ result: bgRemovedImage });
     } catch (e) {
       console.error("Backend Error:", e);
       res.status(500).json({ error: "Internal server error." });

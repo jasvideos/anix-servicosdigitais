@@ -1,0 +1,33 @@
+{
+  "name": "Anix Copiadora - Estúdio",
+  "short_name": "Anix",
+  "description": "Geração e edição de documentos, fotos e impressos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "name": "Abrir Imagem com Anix",
+      "icons": [
+        {
+          "src": "/icon.svg",
+          "sizes": "192x192 512x512",
+          "type": "image/svg+xml"
+        }
+      ],
+      "accept": {
+        "image/*": [".jpg", ".jpeg", ".png", ".webp", ".svg"],
+        "application/pdf": [".pdf"]
+      }
+    }
+  ]
+}

@@ -1,4 +1,3 @@
-
 import { ContractData, ResumeData } from "../types";
 
 const rpcCall = async (method: string, payload: any) => {
