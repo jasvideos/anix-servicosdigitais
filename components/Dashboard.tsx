@@ -98,46 +98,48 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       color: 'bg-orange-600'
     },
     {
-<<<<<<< HEAD
-      id: AppView.DEDICATION,
-      title: 'DEDICATÓRIAS',
-      description: 'Gerador de dedicatórias com arrastar e soltar e moldura em A4',
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
-          <rect width="9" height="8" x="3" y="3"/>
-          <rect width="3" height="18" x="12" y="3"/>
-=======
       id: AppView.RECEIPT_GENERATOR,
       title: 'RECIBOS',
-      description: 'Emissão com extenso automático.',
+      description: 'Emissão com extenso automático e IA.',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
->>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         </svg>
       ),
       color: 'bg-amber-600'
     },
     {
-<<<<<<< HEAD
       id: AppView.SALES_COST,
       title: 'CUSTO VENDA',
       description: 'Markup e precificação inteligente.',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2-2v14a2 2 0 002 2z" />
-=======
+        </svg>
+      ),
+      color: 'bg-indigo-700'
+    },
+    {
       id: AppView.DEDICATION,
-      title: 'DEDICATÓRIAS A4',
+      title: 'DEDICATÓRIAS',
       description: 'Criação de dedicatórias com layout e textos livres.',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
->>>>>>> ef4c8085eb5615c0cd2c7935443abd16e6cf8f61
         </svg>
       ),
       color: 'bg-violet-600'
+    },
+    {
+      id: AppView.FINANCIAL_CONTROL,
+      title: 'CONTROLE FINANCEIRO',
+      description: 'Gestão de caixa, fluxo e inteligência com IA.',
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      color: 'bg-emerald-700'
     }
   ];
 
